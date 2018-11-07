@@ -2,13 +2,17 @@
 
 import json
 import os
+
 import numpy as np
 from keras import metrics
 from keras.callbacks import ModelCheckpoint
+from keras.models import load_model
 from keras.utils import plot_model
 
 # The current file"s location is obtained using __file__
 current_dir = os.path.dirname(os.path.realpath(__file__))
+
+
 
 def model_compiler(model, loss='categorical_crossentropy',
                    optimizer='rmsprop', metrics=[metrics.categorical_accuracy]):
@@ -21,63 +25,48 @@ def model_compiler(model, loss='categorical_crossentropy',
     :param metrics: type=string
     :return: model compiled
 
-        Some popular gradient descent optimizers you might like to choose from include:
+    Some popular gradient descent optimizers you might like to choose from include:
 
-        SGD: stochastic gradient descent, with support for momentum.
-        RMSprop: adaptive learning rate optimization method proposed by Geoff Hinton.
-        ADAM: Adaptive Moment Estimation (ADAM) that also uses adaptive learning rates.
+    SGD: stochastic gradient descent, with support for momentum.
+    RMSprop: adaptive learning rate optimization method proposed by Geoff Hinton.
+    ADAM: Adaptive Moment Estimation (ADAM) that also uses adaptive learning rates.
 
-        You can specify the name of the loss function to use to the compile
-        function by the loss argument. Some common examples include:
+    You can specify the name of the loss function to use to the compile
+    function by the loss argument. Some common examples include:
 
-        'mse': for mean squared error.
-        'binary_crossentropy': for binary logarithmic loss (logloss).
-        'categorical_crossentropy': for multi-class logarithmic loss (logloss).
+    'mse': for mean squared error.
+    'binary_crossentropy': for binary logarithmic loss (logloss).
+    'categorical_crossentropy': for multi-class logarithmic loss (logloss).
     """
 
     # The model is compiled with specified loss, optimizer and metrics
     # For a multi-class classification problem
-    model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+    try:
+        model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+    except:
+        # If the above failed for some reason, simply
+        print("Failed to compile provided model")
 
 
-def save_checkpoint():
+def model_loader(model, checkpoint_path):
     """
-    This function save the checkpoints of our model in .hdf5 format in a checkpoint/ folder.
-    :param filepath: type=string. The path where the checkpoint to be saved us stored
-    :return: information to be used during model.fit
-    """
-    # The checkpoint is defined
-    checkpoint = ModelCheckpoint(filepath='weights.best.hdf5',
-                                 monitor='acc',
-                                 verbose=1,
-                                 save_best_only=True,
-                                 mode='auto',
-                                 period=1)
 
-    return [checkpoint]
-
-
-def load_checkpoint(model, checkpoint_name, filepath):
-    """
-    This function loads all variables of a trained graph from a checkpoint.
-    If the checkpoint does not exist, it is notified to the user.
-    :param model: get the model returned by neural_network function
-    :param checkpoint_name: type=string. Name of the checkpoint the user desires to load.
-    :param filepath: type=string. Filepath to look for desired checkpoint to be restored.
+    :param model:
+    :param checkpoint_path:
     :return:
     """
 
     try:
         print("Trying to restore last checkpoint ...")
-        model.load_weights(os.path.join(filepath, checkpoint_name))
+        model.load_model(checkpoint_path)
         # If we get to this point, the checkpoint was successfully loaded.
-        print("Restored checkpoint from:", os.path.join(filepath, checkpoint_name))
+        print("Restored model from:", checkpoint_path)
     except:
         # If the above failed for some reason, simply
-        print("Failed to restore checkpoint: ", checkpoint_name, " from:", filepath)
+        print("Failed to restore model from: ", checkpoint_path)
 
 
-def model_fit(model, inputs, labels, epochs, validation_split, batch_size, verbose):
+def model_fitter(model, inputs, labels, epochs, validation_split, batch_size, verbose):
 
     """
     This function fits tha created model following next inputs criteria
@@ -93,18 +82,47 @@ def model_fit(model, inputs, labels, epochs, validation_split, batch_size, verbo
     :return: fit_callback
     """
     # The checkpoint to be saved is indicated once every epoch is finished during training
-    #checkpoint = save_checkpoint(filepath=checkpoint_base_dir)
-    checkpoint = save_checkpoint()
 
+    if not os.listdir(os.getcwd()):
+        checkpoint = ModelCheckpoint(filepath='weights.best.h5',
+                                     monitor='acc',
+                                     verbose=1,
+                                     save_best_only=True,
+                                     mode='auto',
+                                     period=1)
 
+        callbacks_list = [checkpoint]
+        # Si el directorio de checkpoints está vacío
+        fit_callback = model.fit(x=[inputs[i] for i in range(len(inputs))], y=labels,
+                                 epochs=epochs,
+                                 validation_split=validation_split,
+                                 batch_size=batch_size,
+                                 callbacks=callbacks_list,
+                                 shuffle=True,
+                                 verbose=verbose)
+    else:
+        # Si el directorio de checkpoints no está vacío
+        # carga el modelo desde el checkpoint
+        model = load_model('weights.best.h5')
 
-    fit_callback = model.fit(x=[inputs[i] for i in range(len(inputs))], y=labels,
-                             epochs=epochs,
-                             validation_split=validation_split,
-                             batch_size=batch_size,
-                             callbacks=checkpoint,
-                             shuffle=True,
-                             verbose=verbose)
+        print('Model Loaded from previous training [!]')
+
+        checkpoint = ModelCheckpoint(filepath='weights.best.h5',
+                                     monitor='acc',
+                                     verbose=1,
+                                     save_best_only=True,
+                                     mode='auto',
+                                     period=1)
+
+        callbacks_list = [checkpoint]
+
+        fit_callback = model.fit(x=[inputs[i] for i in range(len(inputs))], y=labels,
+                                 epochs=epochs,
+                                 validation_split=validation_split,
+                                 batch_size=batch_size,
+                                 callbacks=callbacks_list,
+                                 shuffle=True,
+                                 verbose=verbose)
     return fit_callback
 
 
@@ -147,7 +165,7 @@ def model_evaluate(model, inputs, labels, verbose):
     This function provides the evaluation of a certain model already trained
     :param model: model already trained and compiled after load_checkpoint has been executed
     :param inputs: inputs to evaluate
-    :param labels: labels to compare with predicted labels by oour trained model
+    :param labels: labels to compare with predicted labels by our trained model
     :param verbose: type=bool. 0 or 1.
     :return: scores of the evaluation
     """

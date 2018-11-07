@@ -1,11 +1,11 @@
 # usr/bin/env python
 
 import os
+
 import numpy as np
 from flask import Flask
 from flask import jsonify, request
 from pandas.io.json import json_normalize
-
 from server.trainer import feat_df_app
 from server.trainer.model_builder import load_checkpoint, model_compiler, model_predict
 from server.trainer.nn_lstm import RubikModel

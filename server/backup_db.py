@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 This script creates a timestamped database backup,
 and cleans backups older than a set number of dates
@@ -8,20 +9,24 @@ and cleans backups older than a set number of dates
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import argparse
-import sqlite3
-import shutil
-import time
+import configparser
 import os
+import shutil
+import sqlite3
+import time
 
 description = """
               Create a timestamped SQLite database backup, and
               clean backups older than a defined number of days
               """
 
-# How old a file needs to be in order
-# to be considered for being removed
-no_of_days = 7
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+# How old a file needs to be in order to be considered for being removed
+# Cargamos la configuración
+cfg = configparser.ConfigParser()
+cfg.read(os.path.join(basedir, '..', 'config', 'cfg.ini'))
+no_of_days = cfg.getint('database', 'NO_OF_DAYS')
 
 
 def sqlite3_backup(dbfile, backupdir):
@@ -32,7 +37,7 @@ def sqlite3_backup(dbfile, backupdir):
         # raise Exception("Backup directory does not exist: {}".format(backupdir))
 
     backup_file = os.path.join(backupdir, os.path.basename(dbfile) +
-                               time.strftime("-%Y%m%d-%H%M%S"))
+                               time.strftime("-%Y%m%dT%H%M%S"))
 
     connection = sqlite3.connect(dbfile)
     cursor = connection.cursor()
@@ -58,23 +63,3 @@ def clean_data(backup_dir):
             if os.path.isfile(backup_file):
                 os.remove(backup_file)
                 print("Deleting {}...".format(backup_file))
-
-
-def get_arguments():
-    """Parse the commandline arguments from the user"""
-
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('db_file',
-                        help='the database file that needs backed up')
-    parser.add_argument('backup_dir',
-                        help='the directory where the backup'
-                             'file should be saved')
-    return parser.parse_args()
-
-
-if __name__ == "__main__":
-    args = get_arguments()
-    sqlite3_backup(args.db_file, args.backup_dir)
-    clean_data(args.backup_dir)
-
-    print("Backup update has been successful.")

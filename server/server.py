@@ -1,24 +1,35 @@
+#!/usr/bin/env python
+
+import configparser
+import datetime
 import os
 
-import datetime
+from backup_db import sqlite3_backup, clean_data
 from flask import Flask, request, jsonify
+from flask_jwt_extended import (JWTManager, create_access_token,
+                                jwt_required, get_jwt_identity)
 from flask_marshmallow import Marshmallow
 from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import (JWTManager, create_access_token,
-                                create_refresh_token, jwt_required, jwt_refresh_token_required,
-                                get_jwt_identity, get_raw_jwt)
 from sqlalchemy import Column, String, Boolean, Integer, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-import configparser
+from trainer import train
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 database_dir = os.path.join(basedir, 'database_dir')
+db_backup_dir = os.path.join(basedir, 'database_backup')
 
 # Cargamos la configuración
 cfg = configparser.ConfigParser()
 cfg.read(os.path.join(basedir, '..', 'config', 'cfg.ini'))
 secret_key = cfg.get('database', 'SECRET_KEY')
 jwt_secret_key = cfg.get('database', 'JWT_SECRET_KEY')
+
+num_moves = cfg.getint('training', 'NUM_MOVES')
+epochs = cfg.getint('training', 'TRAINING_EPOCHS')
+validation_split = cfg.getfloat('training', 'VALIDATION_SPLIT')
+batch_size = cfg.getint('training', 'BATCH_SIZE')
+save_graph = cfg.getboolean('training', 'SAVE_GRAPH')
+use_logging = cfg.getboolean('training', 'USE_LOGGING')
 
 # Initialize the SQLAlchemy and Marshmallow extensions, in that order.
 app = Flask(__name__)
@@ -28,13 +39,14 @@ if not os.path.isdir(database_dir):
 
 # Move parameters to config file?
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(database_dir, 'CubeAuth.sqlite')
-app.config['SECRET_KEY'] = secret_key         # Change this!
-app.config['JWT_SECRET_KEY'] = jwt_secret_key # Change this!
+app.config['SECRET_KEY'] = secret_key  # Change this!
+app.config['JWT_SECRET_KEY'] = jwt_secret_key  # Change this!
 
 JWT = JWTManager(app)
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
+
 
 # Declare the models of the DataBase
 # Table Users in linked to Movements in a parent -> child relationship
@@ -89,7 +101,6 @@ class Movements(db.Model):
                  data_order, data_sync, data_lost, data_side, data_shift,
                  data_dbm, data_rssi, data_x, data_y, data_z, is_random,
                  cube_type):
-
         self.user = user
         self.user_id = user_id
         self.solution = solution
@@ -204,7 +215,7 @@ def protected():
 
 
 # Endpoint to increase in one the number of Users.solutions before a sequence
-@app.route("/api/new_sequence_training", methods = ["GET"])
+@app.route("/api/new_sequence_training", methods=["GET"])
 # This Endpoint shall be called before sending a new set of moves through /api/move_training
 # and /api/entire_sequence
 @jwt_required
@@ -255,7 +266,7 @@ def add_train_movement():
     username = get_jwt_identity()
 
     req_data = request.get_json()
-    
+
     try:
         deb = req_data['data']['position']
         # si existe el key anidado de posicionamiento pero viene como null
@@ -292,7 +303,7 @@ def add_train_movement():
     data_dbm = req_data['data']['dbm']
     data_rssi = req_data['data']['rssi']
     is_random = Users.query.filter(Users.user == username).first().is_random
-    
+
     new_move = Movements(user=username, user_id=user_id, solution=solution, index=index, stamp=stamp,
                          src=src, event=event, data_code=data_code, data_order=data_order,
                          data_sync=data_sync, data_lost=data_lost, data_side=data_side,
@@ -325,13 +336,13 @@ def add_sequence():
                 data_x = None
                 data_y = None
                 data_z = None
-        # si existe y viene completado con la información
+            # si existe y viene completado con la información
             else:
                 cube_type = "11paths"
                 data_x = req_data['data']['position']['X']
                 data_y = req_data['data']['position']['Y']
                 data_z = req_data['data']['position']['Z']
-    # En el caso de que directamente no exista la información de posicionamiento
+        # En el caso de que directamente no exista la información de posicionamiento
         except KeyError:
             data_x = None
             data_y = None
@@ -353,13 +364,13 @@ def add_sequence():
         data_dbm = item['data']['dbm']
         data_rssi = item['data']['rssi']
         is_random = Users.query.filter(Users.user == username).first().is_random
-        
+
         new_move = Movements(user=username, user_id=user_id, solution=solution, index=index, stamp=stamp,
-                            src=src, event=event, data_code=data_code, data_order=data_order,
-                            data_sync=data_sync, data_lost=data_lost, data_side=data_side,
-                            data_shift=data_shift, data_dbm=data_dbm, data_rssi=data_rssi,
-                            data_x=data_x, data_y=data_y, data_z=data_z,
-                            is_random=is_random, cube_type=cube_type)
+                             src=src, event=event, data_code=data_code, data_order=data_order,
+                             data_sync=data_sync, data_lost=data_lost, data_side=data_side,
+                             data_shift=data_shift, data_dbm=data_dbm, data_rssi=data_rssi,
+                             data_x=data_x, data_y=data_y, data_z=data_z,
+                             is_random=is_random, cube_type=cube_type)
         new_move.save_to_db()
 
     ret = {
@@ -418,21 +429,31 @@ def auth_threshold():
 
 
 # Endpoint to launch training of the model once an stop is received
-@app.route("/api/launch_lstm_training", methods=["GET"])
+# and backup database after the training is completed
+@app.route("/api/lstm_training_and_backup", methods=["GET"])
 @jwt_required
-def launch_lstm():
-    #train_nn(pad=30, epochs=5, val_split=0.1, 
-    #batch_size=2, save_graph=False, use_logging=True)
+def launch_lstm(no_moves=num_moves, ep=epochs, val_split=validation_split, batch=batch_size,
+                bool_graph=save_graph, bool_logging=use_logging):
+    # This routine launches the training of the model after
+    # a GET petition from Frontend
+
+    # Training routine is launched. Checkpoint is stored in server/checkpoints folder
+    train.train_nn(pad=no_moves, epochs=ep, val_split=val_split,
+                   batch_size=batch, save_graph=bool_graph, use_logging=bool_logging)
+
+    # Database Backup triggered after training is finished
+    sqlite3_backup('CubeAuth.sqlite', db_backup_dir)
+
+    # Delete backups older than NO_OF_DAYS days
+    clean_data(db_backup_dir)
 
     ret = {
-        'msg': 'Cube auth Model successfully trained', 
+        'msg': 'Cube auth Model successfully trained and database back-up completed',
         'status': 'OK'
     }
-
     return jsonify(ret)
 
 
-# TODO: Endpoint de lectura de base de datos en db de cara al entrenamiento
 # TODO: Endpoint de testeo
 # TODO: Endpoint de backup de base de datos
 

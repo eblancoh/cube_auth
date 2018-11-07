@@ -1,9 +1,9 @@
 # usr/bin/env python
 
-from connector_db import database_connection
+import numpy as np
 from keras.preprocessing import sequence
 from keras.utils import to_categorical
-import numpy as np
+from trainer.connector_db import database_connection
 
 # Move to config file?
 moves = database_connection()

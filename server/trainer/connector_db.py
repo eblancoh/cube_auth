@@ -2,14 +2,12 @@
 
 import os
 import sqlite3
-import pandas as pd
-import numpy as np
-from keras.preprocessing import sequence
-from keras.utils import to_categorical
 
+import pandas as pd
 
 server_dir = os.path.abspath(os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir))
 database_dir = os.path.join(server_dir, 'database_dir')
+
 
 def database_connection():
     # Conectar con la base de datos
@@ -30,6 +28,7 @@ def database_connection():
     # Replace NaNs in positioning with zeros
     moves = moves.fillna(0)
     return moves
+
 
 if __name__ == '__main__':
     moves = database_connection()
