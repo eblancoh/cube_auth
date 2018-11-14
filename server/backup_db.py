@@ -56,6 +56,7 @@ def clean_data(backup_dir):
 
     print("\n------------------------------")
     print("Cleaning up old backups")
+    print("\n------------------------------")
 
     for filename in os.listdir(backup_dir):
         backup_file = os.path.join(backup_dir, filename)

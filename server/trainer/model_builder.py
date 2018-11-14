@@ -9,10 +9,6 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
 from keras.utils import plot_model
 
-# The current file"s location is obtained using __file__
-current_dir = os.path.dirname(os.path.realpath(__file__))
-
-
 
 def model_compiler(model, loss='categorical_crossentropy',
                    optimizer='rmsprop', metrics=[metrics.categorical_accuracy]):
@@ -43,7 +39,7 @@ def model_compiler(model, loss='categorical_crossentropy',
     # For a multi-class classification problem
     try:
         model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
-    except:
+    except BaseException:
         # If the above failed for some reason, simply
         print("Failed to compile provided model")
 
@@ -61,7 +57,7 @@ def model_loader(model, checkpoint_path):
         model.load_model(checkpoint_path)
         # If we get to this point, the checkpoint was successfully loaded.
         print("Restored model from:", checkpoint_path)
-    except:
+    except BaseException:
         # If the above failed for some reason, simply
         print("Failed to restore model from: ", checkpoint_path)
 
@@ -103,7 +99,7 @@ def model_fitter(model, inputs, labels, epochs, validation_split, batch_size, ve
     else:
         # Si el directorio de checkpoints no está vacío
         # carga el modelo desde el checkpoint
-        model = load_model('weights.best.h5')
+        model = load_model(filepath='weights.best.h5', compile=True)
 
         print('Model Loaded from previous training [!]')
 
