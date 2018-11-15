@@ -3,6 +3,7 @@
 import configparser
 import datetime
 import os
+import time
 
 from backup_db import sqlite3_backup, clean_data
 from flask import Flask, request, jsonify
@@ -10,13 +11,12 @@ from flask_jwt_extended import (JWTManager, create_access_token,
                                 jwt_required, get_jwt_identity)
 from flask_marshmallow import Marshmallow
 from flask_sqlalchemy import SQLAlchemy
+from keras import backend as K
 from keras.models import load_model
-from keras.utils import to_categorical
-from sqlalchemy import (Column, String, Boolean,
-                        Integer, Float, ForeignKey,
-                        DateTime)
+from sqlalchemy import (Column, String, Boolean, Integer,
+                        Float, ForeignKey, DateTime)
 from sqlalchemy.orm import relationship
-from trainer import train_lstm, input_lstm, model_builder
+from trainer import (train_lstm, input_lstm, model_builder)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 database_dir = os.path.join(basedir, 'database_dir')
@@ -137,8 +137,6 @@ class Movements(db.Model):
 
 class TestMovements(db.Model):
     __tablename__ = 'test_movements'
-    # Bind this database to the app. Use Multiple Databases With Flask-SQLAlchemy
-    #__bind_key__ = 'test'
 
     id = Column(Integer, primary_key=True)
     user = Column(String)
@@ -540,27 +538,6 @@ def train_deep(ep=epochs, val_split=validation_split, batch=batch_size,
     return jsonify(ret)
 
 
-# Endpoint to load the model
-@app.route("/api/load_model", methods=["GET"])
-@jwt_required
-def loading_model():
-
-    # Loading whole model (architecture + weights + optimizer state)
-    try:
-        load_model(filepath=os.path.join(basedir, 'checkpoints', 'weights.best.h5'), compile=True)
-        ret = {
-            'msg': 'Architecture + weights + optimizer state successfully loaded for the model',
-            'status': 'OK'
-        }
-        return jsonify(ret)
-    except BaseException:
-        ret = {
-            'msg': 'Load model failed',
-            'status': 'KO'
-        }
-        return jsonify(ret)
-
-
 # Endpoint to launch testing of the model
 # /api/load_model shall be called before
 @app.route("/api/predict", methods=["POST"])
@@ -630,91 +607,50 @@ def predict():
 
             new_move.save_to_db()
 
+            # Return the movement, enter a new movement for db storing
+            return jsonify(req_data)
+
         else:
 
             features = input_lstm.input_to_test_lstm()
 
             # Model is loaded
             # TODO: ¿Cómo sacar fuera esto? tarda bastante
+            start_time = time.time()
+
+            K.clear_session()
             model = load_model(os.path.join(basedir, 'checkpoints', 'weights.best.h5'))
+
+            print("--- Model loading took %s seconds ---" % (time.time() - start_time))
 
             # The label after the sequence is obtained
             probability, y_pred = model_builder.model_predict(model=model, inputs=features, verbose=0)
 
             # Obtenemos la etiqueta desde el token facilitado
             q = Users.query.filter(Users.user == username).first().id
-            y_true = to_categorical(q, num_classes=no_solvers)
 
             # The result of the prediction is attached. Match probability is provided
             auth["predict"] = []
-            ret = {"label": int(y_pred), "probability": float(probability[0][y_pred])}
+            prob_y_pred = probability[0][y_pred]
+            ret = {
+                "label": int(y_pred),
+                "probability": float(prob_y_pred)
+            }
             auth["predict"].append(ret)
 
-            if y_pred == y_true and float(probability[y_pred]) > 50.:
+            if y_pred == q and prob_y_pred > 50.:
                 # If the predicted label is the same as the provided with the json file:
                 auth["success"] = True
+
+            # Delete TestMovements table after providing auth json once the model has been tested
+            TestMovements.query.delete()
+            # Commit deletion to database
+            db.session.commit()
 
             # Return in json format the response:
             return jsonify(auth)
 
 
 if __name__ == '__main__':
-    longstring = """
-
-                                    CUBE AUTH - 11PATHS
-
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNs--/ymMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMm+--:::--/smMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMh/-:::::::::--:smMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMNs:-::::::::::::-.`.symMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMNd/ .--:::::::::-.``/hmmysydMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMd+::.`  `.--::::-.`.odmmmmmmmhsydMMMMMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMh/://///:.`  `.--``-smmmmmmmmmmmmmh/+mMMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMNy////////////:.  `. ymmmmmmmmmmmmmms-  .MMMMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMNo://////////////-` `` `:sdmmmmmmmmds-`   .NMMMMMMNMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMmh/`-////////////.``.-::-.` `/ymmmmd+.`     .NMmhyssyddmNMMMMMMMMMM
-    MMMMMMMMMMMd+/+:.  .://////:.``.-::::::--.` `/s+`       ``-/hmmmmmmmmdhdNMMMMMMM
-    MMMMMMMMMy/+ooooo+-` `.:/-``.-::::::::::::--` `.  ``.-:////-./ydmmmmmmmmdhhmMMMM
-    MMMMMMNs/+oooooooooo/-` -``-::::::::::::::-.    .////////////:-./ymmmmmho/. hMMM
-    MMMMmo/ooooooooooooo+:``.  `.-:::::::--....-----.`-:////////////:.`//-```.--MMMM
-    MMMh`/oooooooooooo+-`.+dmh+.  `--:.``.--:::::::::-.``-////////:-.` .`-:///:dMMMM
-    MMMM+:`-+ooooooo/.`-odmmmmmmy/` ```. `.-::::::::::::-.``-:-.```... `//////oMMMMM
-    MMMMNyho-.:+o+:``:ymmmmmmmmmmmds: +mh+.`..-::::::::--..``.``.--::. ://///:NMMMMM
-    MMMMMNyddy/.-. /hmmmmmmmmmmmmmmds`dmmmmy/.``.-:--..``./: `-:::::- ./////:hMMMMMM
-    MMMMMMNsddddo` /ymmmmmmmmmmmmd+. :mmmmmmmds:`.- `:+ydNN: -:::::-``////:-hMMMMMMM
-    MMMMMMMN/ohddo```.odmmmmmmmh/.`  ymmmmmmmmmmh .hNNNNNNy `::::::. .:.```.MMMMMMMM
-    MMMMMMMMNhs+sd+`-.``/ymmmy:``   .mmmmmmmmmmm/ oNNNNNNN- -:::--.` ``.---yMMMMMMMM
-    MMMMMMMMMNhdh++..--..`./-       -hmmmmmmmmmh``mNNNNNNo .--.` ` `-:::::/MMMMMMMMM
-    MMMMMMMMMMmydddo..----.``       ` -odmmmmmm: oNNNNNNd` ` `.-:: .:::::-mMMMMMMMMM
-    MMMMMMMMMMMmoyddh....---``     :o/-``:ymmmy``mNNds+.``.-:////``-::::-sMMMMMMMMMM
-    MMMMMMMMMMMMm:/ohy.:-..-..    `+ooo+/. .+y- :s/.``.` `//////: .:::--+MMMMMMMMMMM
-    MMMMMMMMMMMMMd//:/:`:::..``   -ooooooo+:. .` `.-:/:` ://///:``--.``.dMMMMMMMMMMM
-    MMMMMMMMMMMMMMd////-`-:::-`  `+ooooooooo+` -://///. ./////:-  `:oydhMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMho//-`/-::-  -oooooooooo: `://///: `:/::-`` -hmmmmyNMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMNy+./y+:-` ./oooooooo+` -//////. `-``:oh-`hmmmmhmMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMmsoyys:-s:`-/ooooo- `/////:-``:ohmNNy /mmmmdhMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMNhyy/ymmdo-`:+o+` :/:-.``  yNNNNNN-`hmdddNMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMm/mmmmmmh+... `.``.--- :NNNNNNs-/dmMMMMMMMMMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMdymmmmmmmmmo``.-::::-``hNNNNddhMMMMMMMMMMM@MMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMsmmmmmmmmmm: .::::::. /NmddmNMMMMMMMMMMMMMEMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMhhmmmmmmmmy `-:::::-``hmmMMMMMMMMMMMMMMMMMBMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMNdhdmmmmm- .::::-/smMMMMMMMMMMMMMMMMMMMMMLMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMmhhmms `-::+yNMMMMMMMMMMMMMMMMMMMMMMMMAMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNdh. -ohNMMMMMMMMMMMMMMMMMMMMMMMMMMMNMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMmmMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMCMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMOMMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM_MMMMMMMMMMM
-    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMHMMMMMMMMMMM
-
-
-                                    CUBE AUTH - 11PATHS
-
-
-    """
-    print(longstring)
-
     db.create_all()
-    print("* Loading Keras model and Flask starting server...\nPlease wait until server has fully started")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, threaded=True)
