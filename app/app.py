@@ -89,13 +89,14 @@ test_movements_schema = TestMovementsSchema(many=True)
 revoked_token_model_schema = RevokedTokenModelSchema(many=True)
 
 
-#  Support of token blacklisting
+#  Support of token blacklisting. Auxiliary function
 @JWT.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
     jti = decrypted_token['jti']
     return RevokedTokenModel.is_jti_blacklisted(jti)
 
-
+# Endpoints
+#########################################################################
 # Endpoint for token revoke
 @app.route("/api/token_revoke", methods=["POST"])
 @jwt_required
@@ -148,14 +149,9 @@ def authentication():
 
         ret = {
             'msg': 'KO',
-            # 'misc': 'User {} does not exist. User incorporated to database'.format(request.json['username'],
             'session_token': token
         }
 
-        # ret = {
-        #    'msg': 'User {} was created'.format(request.json['username']),
-        #    'session_token': token
-        # }
         return jsonify(ret)
 
     # if the user exists in database:
@@ -570,7 +566,6 @@ def predict():
 
 
 # Query Endpoints in Database
-
 # Endpoint to show all the info from the Users database
 @app.route("/api/query/all_users", methods=["GET"])
 def get_user():
