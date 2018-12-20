@@ -65,10 +65,16 @@ def feed_training_data():
             time.append(i['timestamp'])
             turn.append(i['turn'])
 
-            for j in position:
-                x.append(j['x'])
-                y.append(j['y'])
-                z.append(j['z'])
+            if position is not None and i['cube_type'] == '11paths':
+                for j in position:
+                    x.append(j['x'])
+                    y.append(j['y'])
+                    z.append(j['z'])
+            else:
+                for j in range(frequency):
+                    x.append(0)
+                    y.append(0)
+                    z.append(0)
 
         dt = np.array(time).astype('datetime64')
         # Delta time between movements in milliseconds
@@ -146,10 +152,16 @@ def feed_testing_data(body):
         turn.append(i['turn'])
         position = i['yaw_pitch_roll']
 
-        for j in position:
-            x.append(j['x'])
-            y.append(j['y'])
-            z.append(j['z'])
+        if position is not None and i['cube_type'] == '11paths':
+            for j in position:
+                x.append(j['x'])
+                y.append(j['y'])
+                z.append(j['z'])
+        else:
+            for j in range(frequency):
+                x.append(0)
+                y.append(0)
+                z.append(0)
 
     time = np.array(time).astype('datetime64')
     # Delta time between movements in milliseconds

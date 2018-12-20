@@ -111,25 +111,35 @@ pip install -r requirements.txt
 
 ## Running the app
 
-Once the environment has been correctly installed, activate the virtual enviroment and run:
+Once the environment has been correctly installed, activate the virtual enviroment and for start the consumer that launches the training routine:
 
 
 ```
-python ~/cube_auth/app/app.py
+python ~/cube_auth/ml_engine/receive.train.py
 ```
 
 The app will be running and listening, prompting the following message in the terminal:
 ```
 Using TensorFlow backend.
- * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
+ [*] Waiting for messages. To exit press CTRL+C
+```
+
+Very similar when the testing sequence is sent to the machine learning engine:
+```
+python ~/cube_auth/ml_engine/receive.test.py
+```
+
+The app will be running and listening, prompting the following message in the terminal:
+```
+Using TensorFlow backend.
+ [*] Waiting for messages. To exit press CTRL+C
 ```
 
 
 ## Built With
 
 * [Python](https://www.python.org/) - Programming Language
-* [Flask](http://flask.pocoo.org/) - Microframework for Python Web development based on Werkzeug, Jinja 2 and good intentions.
-* [SQLAlchemy](https://www.sqlalchemy.org/) - Python SQL toolkit and Object Relational Mapper that gives application developers the full power and flexibility of SQL.
+* [Pika](https://pika.readthedocs.io/en/stable/) - Pika is a pure-Python implementation of the AMQP 0-9-1 protocol that tries to stay fairly independent of the underlying network support library. If you have not developed with Pika or RabbitMQ before, the Introduction to Pika documentation is a good place to get started.
 
 ## Contributing
 
