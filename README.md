@@ -1,6 +1,6 @@
 # Cube Auth Backend: Rubik’s Cube Machine Learning Web Authentication
 
-PoC for Web Authentication based on Machine Learning analysis of 3x3 Rubik's Cube solving sequences. This repo includes the code for Authentication Backend Machibe Learning component of the system.
+PoC for Web Authentication based on Machine Learning analysis of 3x3 Rubik's Cube solving sequences. This repo includes the code for Authentication Backend Machine Learning component of the system.
 
 ## Getting Started
 
@@ -12,13 +12,13 @@ The software in this repo can be executed in Windows or Linux.
 
 No special HW or SW prerequisites are required to execute all the routines that constitute the Backend.
 
-The Pyhton version used to develop and test this repo is **Python 3.6.7**
+The Python version used to develop and test this repo is **Python 3.6.7**
 
 #### Installation of Anaconda Distribution
 
 Anaconda Distribution was used to set up the Python environment used to created this component of  the Cueb Auth PoC. It can be deployed on Linux, Windows, and Mac OS X.
 
-**For Linux distros**
+**For Linux distro**
 
 Tested on [Ubuntu Desktop 16.04 LTS](http://releases.ubuntu.com/16.04/) and [Ubuntu 18.04.1 LTS](https://www.ubuntu.com/download/desktop)
 
@@ -57,6 +57,8 @@ export PATH="/home/$USER/anaconda3/bin:$PATH"
 
 **For Windows OS**
 
+This software was tested in Windows 10.
+
 Download the [installer](https://repo.continuum.io/archive/Anaconda3-4.2.0-Windows-x86_64.exe), double-click the .exe file and follow the instructions on the screen.
 
 If you are unsure about any setting, accept the defaults. You can change them later.
@@ -76,17 +78,18 @@ A new virtual environment called _cubeauth_ is created.
 
 #### Activate the new environment
 
+On Linux:
+
+```
+source activate cubeauth
+```
+
 On Windows: 
 
 ```
 activate cubeauth
 ```
 
-On Linux: 
-
-```
-source activate cubeauth
-```
 
 #### New environment's correct installation cross-check
 
@@ -105,8 +108,6 @@ Within the _cubeauth_ environment, run.
 ```
 pip install -r requirements.txt
 ```
-
-End with an example of getting some data out of the system or using it for a little demo
 
 ## Running the app
 
@@ -141,17 +142,14 @@ TBD
 
     [GitHub - eblancoh](https://github.com/eblancoh)
 
-* **TBC**
 
 ## License
 
-This project is licensed TBD - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed as GNU GENERAL PUBLIC LICENSE - see the [LICENSE.md](LICENSE.md) file for details
 
 ## Acknowledgments
 
 * Hat tip to anyone whose code was used
-* Inspiration
-* etc
 
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

@@ -156,19 +156,6 @@ def graph_model(model, graph_name, filepath):
     print('Graph of the current model saved in: ', os.path.join(filepath, graph_name + '.png'))
 
 
-def model_evaluate(model, inputs, labels, verbose):
-    """
-    This function provides the evaluation of a certain model already trained
-    :param model: model already trained and compiled after load_checkpoint has been executed
-    :param inputs: inputs to evaluate
-    :param labels: labels to compare with predicted labels by our trained model
-    :param verbose: type=bool. 0 or 1.
-    :return: scores of the evaluation
-    """
-    scores = model.evaluate(x=[inputs[i] for i in range(len(inputs))], y=labels, batch_size=1, verbose=verbose)
-    print('Accuracy over validation set is: %s: %.2f%%' % (model.metrics_names[1], scores[1] * 100))
-
-
 def model_predict(model, inputs, verbose=0):
     """
 
@@ -177,7 +164,6 @@ def model_predict(model, inputs, verbose=0):
     :param verbose:
     :return:
     """
-    # y_pred = model.predict(x=[inputs[i] for i in range(len(inputs))], verbose=verbose)
-    y_pred = model.predict(x=[inputs[i] for i in range(len(inputs))], verbose=verbose)
+    y_pred = model.predict(x=[inputs[0], inputs[1], inputs[2]], verbose=verbose)
 
     return y_pred * 100, np.argmax(y_pred)
