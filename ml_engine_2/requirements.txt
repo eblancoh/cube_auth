@@ -1,0 +1,5 @@
+pika
+keras
+pymongo
+numpy
+tensorflow
