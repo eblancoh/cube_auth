@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: rubikscubennnsolver
+Version: 1.0.0
+Summary: Resolve rubiks cube NxNxN solver
+Home-page: https://github.com/dwalton76/rubiks-cube-solvers/tree/master/NxNxN
+Author: Daniel Walton
+Author-email: dwalton76@gmail.com
+License: GPLv3
+Description: UNKNOWN
+Keywords: rubiks cube NxNxN solver
+Platform: UNKNOWN
