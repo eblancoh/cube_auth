@@ -2,7 +2,6 @@
 
 import configparser
 import os
-
 from keras.layers import Dense
 from keras.layers import Input
 from keras.layers import LSTM
@@ -19,8 +18,6 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # Configuration loading from config/cfg.ini
 cfg = configparser.ConfigParser()
 cfg.read(os.path.join(basedir, '..', '..', 'config', 'cfg.ini'))
-no_feat = cfg.getint('deep_model', 'NO_FEATURES')
-no_solvers = cfg.getint('deep_model', 'NO_SOLVERS')
 num_lstm_units = cfg.getint('deep_model', 'NUM_LSTM_UNITS')
 conv2d_filters_1 = cfg.getint('deep_model', 'CONV2D_FILTERS_1')
 conv2d_filters_2 = cfg.getint('deep_model', 'CONV2D_FILTERS_2')
@@ -28,10 +25,10 @@ hidden_conv2d_1_units = cfg.getint('deep_model', 'HIDDEN_CONV2D_1_UNITS')
 hidden_conv2d_2_units = cfg.getint('deep_model', 'HIDDEN_CONV2D_2_UNITS')
 num_hidden_units_1 = cfg.getint('deep_model', 'NUM_HIDDEN_UNITS_1')
 num_hidden_units_2 = cfg.getint('deep_model', 'NUM_HIDDEN_UNITS_2')
-pad = cfg.getint('training', 'NUM_MOVES')
+num_hidden_units_3 = cfg.getint('deep_model', 'NUM_HIDDEN_UNITS_3')
 
 
-def rubik_deep_model(yaw_pitch_roll):
+def rubik_deep_model(pad, yaw_pitch_roll):
 
     # Branch for delta times processing
     input_dt = Input(shape=(pad, 1))
@@ -75,8 +72,13 @@ def rubik_deep_model(yaw_pitch_roll):
     hidden_2 = Dense(units=num_hidden_units_2, activation='relu')(dropout_1)
     # Dropout layer after second hidden layer
     dropout_2 = Dropout(rate=0.10)(hidden_2)
+    # Third dense hidden 
+    hidden_3 = Dense(units=num_hidden_units_3, activation='relu')(dropout_2)
+    # Dropout layer after second hidden layer
+    dropout_3 = Dropout(rate=0.10)(hidden_3)
     # Output layer definition
-    output = Dense(units=no_solvers, activation='softmax')(dropout_2)
+    # output = Dense(units=no_solvers, activation='softmax')(dropout_2)
+    output = Dense(units=1, kernel_initializer='normal', activation='sigmoid')(dropout_3)
 
     # The model is built according to architecture depicted above depending on the approach
     # The input to model is all the inputs to the model to be considered

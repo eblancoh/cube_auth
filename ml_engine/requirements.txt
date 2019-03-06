@@ -1,0 +1,8 @@
+pika
+keras
+pymongo
+numpy
+tensorflow
+scikit
+pickle
+pandas

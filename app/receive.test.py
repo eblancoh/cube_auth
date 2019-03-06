@@ -65,7 +65,7 @@ def callback(ch, method, properties, body):
             }
     auth["predict"].append(ret)
 
-    if y_pred == q and prob_y_pred > prob_threshold:
+    if y_pred == q and prob_y_pred >= prob_threshold:
                 # If the predicted label is the same as the provided with the json file:
                 auth["success"] = True
 
