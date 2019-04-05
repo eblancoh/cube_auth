@@ -14,7 +14,85 @@ import json
 from sklearn.metrics import confusion_matrix
 
 
-def training_dataframe(mongodb_uri, split): 
+def ml_engine_training(x_train, x_test, y_train, y_test, user, model):
+    """
+    Rutina de entrenamiento
+    Los datos de entrada deben estar normalizados
+    """
+    if model == 'logRegr':
+        from sklearn.linear_model import LogisticRegression
+
+        model = LogisticRegression(C=1.0, class_weight=None, solver='newton-cg', max_iter=100, penalty='l2')
+        model.fit(x_train, y_train)
+        
+        y_pred = model.predict(x_test)
+
+        filename = 'logRegr_chckpt_' + user +'.sav'
+
+    elif model == 'svc':
+        from sklearn.svm import SVC
+
+        model = SVC(C=1.0, gamma=0.1, kernel='rbf', probability=True)
+        model.fit(x_train, y_train)
+        
+        y_pred = model.predict(x_test)
+
+        filename = 'svc_chckpt_' + user +'.sav'
+    
+    y_true = np.array(y_test)
+    metrics = precision_recall_fscore_support(y_true, y_pred, average=None, labels=[1, 0])
+
+    # Confusion matrix
+    _conf = confusion_matrix(y_true, y_pred).ravel()
+
+    # Contamos el número real de positivos y negativos
+    pos = np.count_nonzero(y_true)
+    neg = y_true.__len__() - pos
+
+    # Guardamos checkpoint
+    pickle.dump(model, open(filename, 'wb'))
+
+    print('Precision: ', np.round(metrics[0][0], decimals=2), ' ||', 'Recall: ', np.round(metrics[1][0], decimals=2), ' ||', 'F-Score: ', np.round(metrics[2][0], decimals=2))
+    print('tn: ', _conf[0], ' || fp: ', _conf[1], ' || fn: ', _conf[2],  ' || tp: ', _conf[3], ' || pos: ', pos, ' || neg:', neg)
+    return metrics[0][0], metrics[1][0], metrics[2][0]
+
+
+def model_testing(testeo, user, model):
+    """
+    Rutina de testeo.
+    Los datos se normalizan dentro de la función
+    """
+
+    if model == 'logRegr':
+        filename = 'logRegr_chckpt_' + user + '.sav'
+    elif model == 'svc':
+        filename = 'svc_chckpt_' + user + '.sav'
+    else:
+        print('Specify a correct model keyword')
+        sys.exit()
+    
+
+    if not filename in os.listdir(os.getcwd()):
+        sys.exit("No training has been launched before or this user does not exist in database")
+    else:
+        loaded_model = pickle.load(open(filename, 'rb'))
+
+        # Cargamos el escalado desde el fichero scaler.sav y escalamos la secuencia de testeo
+        testeo = load_scaling(testeo)
+        probs = list()
+        probs.append(loaded_model.predict_proba(testeo)[0][1])
+        # Vamos a meter algo de ruido sobre la secuencia de testeo ya normalizada
+        for _ in range(1000):
+            signal = testeo + np.random.uniform(0.0, 1.5, testeo.shape)
+            probs.append(loaded_model.predict_proba(signal)[0][1])
+        
+        # probability = loaded_model.predict_proba(testeo)[0][1]
+        probability = median(probs)
+        # Devolvemos la probabilidad de que sea un 1
+        return probability
+
+
+def training_dataframe(mongodb_uri): 
 
     # Making a Connection with MongoClient
     client = MongoClient(mongodb_uri)
@@ -102,8 +180,8 @@ def training_dataframe(mongodb_uri, split):
         no_61 = chk.loc['61']
         no_63 = chk.loc['63']
 
-        no_CW = no_11 + no_21 + no_31 + no_41 + no_51 + no_61
-        no_CCW = no_13 + no_23 + no_33 + no_43 + no_53 + no_63
+        # no_CW = no_11 + no_21 + no_31 + no_41 + no_51 + no_61
+        # no_CCW = no_13 + no_23 + no_33 + no_43 + no_53 + no_63
 
         # Definimos un diccionario vacío
         df_dict = {}
@@ -113,12 +191,12 @@ def training_dataframe(mongodb_uri, split):
         df_dict['is_random'] = is_random
         df_dict['num_moves'] = num_moves
         df_dict['duration'] = duration
-        df_dict['q1'] = q1
+        # df_dict['q1'] = q1
         df_dict['q2'] = q2
-        df_dict['q3'] = q3
-        df_dict['iqr'] = iqr
-        df_dict['maximum'] = maximum
-        df_dict['minimum'] = minimum
+        # df_dict['q3'] = q3
+        # df_dict['iqr'] = iqr
+        # df_dict['maximum'] = maximum
+        # df_dict['minimum'] = minimum
         df_dict['no_11'] = no_11 / num_moves
         df_dict['no_13'] = no_13 / num_moves
         df_dict['no_21'] = no_21 / num_moves
@@ -131,113 +209,29 @@ def training_dataframe(mongodb_uri, split):
         df_dict['no_53'] = no_53 / num_moves
         df_dict['no_61'] = no_61 / num_moves
         df_dict['no_63'] = no_63 / num_moves
-        df_dict['no_CW'] = no_CW / num_moves
-        df_dict['no_CCW'] = no_CCW / num_moves
+        # df_dict['no_CW'] = no_CW / num_moves
+        # df_dict['no_CCW'] = no_CCW / num_moves
         # Handling positioning
-        df_dict['yaw'] = YAW
-        df_dict['pitch'] = PITCH
-        df_dict['roll'] = ROLL
-        df_dict['yaw-sigma'] = YAW_SIGMA
-        df_dict['pitch-sigma'] = PITCH_SIGMA
-        df_dict['roll-sigma'] = ROLL_SIGMA
+        # df_dict['yaw'] = YAW
+        # df_dict['pitch'] = PITCH
+        # df_dict['roll'] = ROLL
+        # df_dict['yaw-sigma'] = YAW_SIGMA
+        # df_dict['pitch-sigma'] = PITCH_SIGMA
+        # df_dict['roll-sigma'] = ROLL_SIGMA
 
-        # Partimos cada dataset df en sequences en n_split parts
-        n_split = split
-        df_splitted = np.array_split(df, n_split)
-
-        i=0
-        if n_split == 1:
-            info_bucket.append(df_dict)
-            continue
-        else:
-            for elem in df_splitted:
-                if len(elem) > 1:
-
-                    _time = (elem['timestamp'] - elem['timestamp'].iloc[0]) / np.timedelta64(1, 's')
-                    _num_moves = len(_time)
-                    _duration = _time.iloc[-1]
-                    # Las diferencias de tiempo se calculan aquí
-                    _diff_time = np.diff(_time)
-
-                    try:
-                        # Nos interesan mínimo, máximo, Mediana, 25th percentile and 75th percentile
-                        _q1 = np.percentile(_diff_time, 25)
-                        _q2 = np.percentile(_diff_time, 50)
-                        _q3 = np.percentile(_diff_time, 75)
-                    except IndexError:
-                        _q1 = _q2 = _q3 = 0
-                    _iqr = (_q3 - _q1)/np.sqrt(_num_moves)
-                    _minimum = _q1 - 1.58 * _iqr
-                    _maximum = _q3 + 1.58 * _iqr
-
-                    _turn_values = ['11', '13', '21', '23', 
-                                    '31', '33', '41', '43', 
-                                    '51', '53', '61', '63']
-                    _chk = elem.groupby('turn').size()
-                    _chk_index = _chk.index
-
-                    for k in _turn_values:
-                        if k not in _chk_index:
-                            _chk.loc[k] = 0
-                    
-                    _no_11 = _chk.loc['11']
-                    _no_13 = _chk.loc['13']
-                    _no_21 = _chk.loc['21']
-                    _no_23 = _chk.loc['23']
-                    _no_31 = _chk.loc['31']
-                    _no_33 = _chk.loc['33']
-                    _no_41 = _chk.loc['41']
-                    _no_43 = _chk.loc['43']
-                    _no_51 = _chk.loc['51']
-                    _no_53 = _chk.loc['53']
-                    _no_61 = _chk.loc['61']
-                    _no_63 = _chk.loc['63']
-
-                    _no_CW = _no_11 + _no_21 + _no_31 + _no_41 + _no_51 + _no_61
-                    _no_CCW = _no_13 + no_23 + _no_33 + _no_43 + _no_53 + _no_63
-
-                    df_dict['num.moves.{0}'.format(i)] = _num_moves
-                    df_dict['duration.{0}'.format(i)] = _duration
-                    df_dict['q1.{0}'.format(i)] = _q1
-                    df_dict['q2.{0}'.format(i)] = _q2
-                    df_dict['q3.{0}'.format(i)] = _q3
-                    df_dict['iqr.{0}'.format(i)] = _iqr
-                    df_dict['maximum.{0}'.format(i)] = _maximum
-                    df_dict['minimum.{0}'.format(i)] = _minimum
-                    df_dict['no_11.{0}'.format(i)] = _no_11 / _num_moves
-                    df_dict['no_13.{0}'.format(i)] = _no_13 / _num_moves
-                    df_dict['no_21.{0}'.format(i)] = _no_21 / _num_moves
-                    df_dict['no_23.{0}'.format(i)] = _no_23 / _num_moves
-                    df_dict['no_31.{0}'.format(i)] = _no_31 / _num_moves
-                    df_dict['no_33.{0}'.format(i)] = _no_33 / _num_moves
-                    df_dict['no_41.{0}'.format(i)] = _no_41 / _num_moves
-                    df_dict['no_43.{0}'.format(i)] = _no_43 / _num_moves
-                    df_dict['no_51.{0}'.format(i)] = _no_51 / _num_moves
-                    df_dict['no_53.{0}'.format(i)] = _no_53 / _num_moves
-                    df_dict['no_61.{0}'.format(i)] = _no_61 / _num_moves
-                    df_dict['no_63.{0}'.format(i)] = _no_63 / _num_moves
-                    df_dict['no_CW.{0}'.format(i)] = _no_CW / _num_moves
-                    df_dict['no_CCW.{0}'.format(i)] = _no_CCW / _num_moves
-
-                    i+=1
-                
-                else:
-                    continue
-
-            
-            info_bucket.append(df_dict)
+        info_bucket.append(df_dict)
 
     dataframe = pd.DataFrame(info_bucket)
     dataframe = dataframe.fillna(value=0)
     return dataframe
 
 
-def testing_dataframe(body, split):
+def testing_dataframe(body):
 
     user = json.loads(body.decode('utf-8'))['email']
     login_id = json.loads(body.decode('utf-8'))['id']
     movements = json.loads(body.decode('utf-8'))['movements']
-
+    
     cube_type = movements[0]['cube_type']
     is_random = movements[0]['is_random']
 
@@ -245,6 +239,7 @@ def testing_dataframe(body, split):
 
     movements = pd.DataFrame(movements)
     movements = movements.convert_objects(convert_numeric=True)
+    movements.turn = movements.turn.astype(str)
     movements['timestamp'] = pd.to_datetime(movements['timestamp'], infer_datetime_format=True)
     time = (movements['timestamp'] - movements['timestamp'].iloc[0]) / np.timedelta64(1, 's')
     num_moves = len(time)
@@ -293,28 +288,29 @@ def testing_dataframe(body, split):
     turn_values = ['11', '13', '21', '23', 
                 '31', '33', '41', '43', 
                 '51', '53', '61', '63']
-    chk = movements.groupby('turn').size()
-    chk_index = chk.index
+    chk = pd.DataFrame([movements.groupby('turn').size()])
+    chk_index = chk.keys().format()
 
     for i in turn_values:
         if i not in chk_index:
-            chk.loc[i] = 0
+            # chk.loc[i] = 0
+            chk[str(i)] = 0
     
-    no_11 = chk.loc['11']
-    no_13 = chk.loc['13']
-    no_21 = chk.loc['21']
-    no_23 = chk.loc['23']
-    no_31 = chk.loc['31']
-    no_33 = chk.loc['33']
-    no_41 = chk.loc['41']
-    no_43 = chk.loc['43']
-    no_51 = chk.loc['51']
-    no_53 = chk.loc['53']
-    no_61 = chk.loc['61']
-    no_63 = chk.loc['63']
+    no_11 = int(chk['11'].values)
+    no_13 = int(chk['13'].values)
+    no_21 = int(chk['21'].values)
+    no_23 = int(chk['23'].values)
+    no_31 = int(chk['31'].values)
+    no_33 = int(chk['33'].values)
+    no_41 = int(chk['41'].values)
+    no_43 = int(chk['43'].values)
+    no_51 = int(chk['51'].values)
+    no_53 = int(chk['53'].values)
+    no_61 = int(chk['61'].values)
+    no_63 = int(chk['63'].values)
 
-    no_CW = no_11 + no_21 + no_31 + no_41 + no_51 + no_61
-    no_CCW = no_13 + no_23 + no_33 + no_43 + no_53 + no_63
+    #no_CW = no_11 + no_21 + no_31 + no_41 + no_51 + no_61
+    #no_CCW = no_13 + no_23 + no_33 + no_43 + no_53 + no_63
 
     # Definimos un diccionario vacío
     df_dict = {}
@@ -324,12 +320,12 @@ def testing_dataframe(body, split):
     df_dict['is_random'] = is_random
     df_dict['num_moves'] = num_moves
     df_dict['duration'] = duration
-    df_dict['q1'] = q1
+    # df_dict['q1'] = q1
     df_dict['q2'] = q2
-    df_dict['q3'] = q3
-    df_dict['iqr'] = iqr
-    df_dict['maximum'] = maximum
-    df_dict['minimum'] = minimum
+    # df_dict['q3'] = q3
+    # df_dict['iqr'] = iqr
+    # df_dict['maximum'] = maximum
+    # df_dict['minimum'] = minimum
     df_dict['no_11'] = no_11 / num_moves
     df_dict['no_13'] = no_13 / num_moves
     df_dict['no_21'] = no_21 / num_moves
@@ -342,100 +338,17 @@ def testing_dataframe(body, split):
     df_dict['no_53'] = no_53 / num_moves
     df_dict['no_61'] = no_61 / num_moves
     df_dict['no_63'] = no_63 / num_moves
-    df_dict['no_CW'] = no_CW / num_moves
-    df_dict['no_CCW'] = no_CCW / num_moves
+    #df_dict['no_CW'] = no_CW / num_moves
+    #df_dict['no_CCW'] = no_CCW / num_moves
     # Handling positioning
-    df_dict['yaw'] = YAW
-    df_dict['pitch'] = PITCH
-    df_dict['roll'] = ROLL
-    df_dict['yaw-sigma'] = YAW_SIGMA
-    df_dict['pitch-sigma'] = PITCH_SIGMA
-    df_dict['roll-sigma'] = ROLL_SIGMA
+    # df_dict['yaw'] = YAW
+    # df_dict['pitch'] = PITCH
+    # df_dict['roll'] = ROLL
+    # df_dict['yaw-sigma'] = YAW_SIGMA
+    # df_dict['pitch-sigma'] = PITCH_SIGMA
+    # df_dict['roll-sigma'] = ROLL_SIGMA
 
-    # Partimos cada dataset df en sequences en n_split parts
-    n_split = split
-    df_splitted = np.array_split(movements, n_split)
-
-    i=0
-    if n_split == 1:
-        info_bucket.append(df_dict)
-    else:
-        for elem in df_splitted:
-            if len(elem) > 1:
-
-                _time = (elem['timestamp'] - elem['timestamp'].iloc[0]) / np.timedelta64(1, 's')
-                _num_moves = len(_time)
-                _duration = _time.iloc[-1]
-                # Las diferencias de tiempo
-                _diff_time = np.diff(_time)
-
-                try:
-                    # Nos interesan mínimo, máximo, Mediana, 25th percentile and 75th percentile
-                    _q1 = np.percentile(_diff_time, 25)
-                    _q2 = np.percentile(_diff_time, 50)
-                    _q3 = np.percentile(_diff_time, 75)
-                except IndexError:
-                    _q1 = _q2 = _q3 = 0
-                _iqr = (_q3 - _q1)/np.sqrt(_num_moves)
-                _minimum = _q1 - 1.58 * _iqr
-                _maximum = _q3 + 1.58 * _iqr
-
-                _turn_values = ['11', '13', '21', '23', 
-                                '31', '33', '41', '43', 
-                                '51', '53', '61', '63']
-                _chk = elem.groupby('turn').size()
-                _chk_index = _chk.index
-
-                for k in _turn_values:
-                    if k not in _chk_index:
-                        _chk.loc[k] = 0
-                
-                _no_11 = _chk.loc['11']
-                _no_13 = _chk.loc['13']
-                _no_21 = _chk.loc['21']
-                _no_23 = _chk.loc['23']
-                _no_31 = _chk.loc['31']
-                _no_33 = _chk.loc['33']
-                _no_41 = _chk.loc['41']
-                _no_43 = _chk.loc['43']
-                _no_51 = _chk.loc['51']
-                _no_53 = _chk.loc['53']
-                _no_61 = _chk.loc['61']
-                _no_63 = _chk.loc['63']
-
-                _no_CW = _no_11 + _no_21 + _no_31 + _no_41 + _no_51 + _no_61
-                _no_CCW = _no_13 + no_23 + _no_33 + _no_43 + _no_53 + _no_63
-
-                df_dict['num.moves.{0}'.format(i)] = _num_moves
-                df_dict['duration.{0}'.format(i)] = _duration
-                df_dict['q1.{0}'.format(i)] = _q1
-                df_dict['q2.{0}'.format(i)] = _q2
-                df_dict['q3.{0}'.format(i)] = _q3
-                df_dict['iqr.{0}'.format(i)] = _iqr
-                df_dict['maximum.{0}'.format(i)] = _maximum
-                df_dict['minimum.{0}'.format(i)] = _minimum
-                df_dict['no_11.{0}'.format(i)] = _no_11 / _num_moves
-                df_dict['no_13.{0}'.format(i)] = _no_13 / _num_moves
-                df_dict['no_21.{0}'.format(i)] = _no_21 / _num_moves
-                df_dict['no_23.{0}'.format(i)] = _no_23 / _num_moves
-                df_dict['no_31.{0}'.format(i)] = _no_31 / _num_moves
-                df_dict['no_33.{0}'.format(i)] = _no_33 / _num_moves
-                df_dict['no_41.{0}'.format(i)] = _no_41 / _num_moves
-                df_dict['no_43.{0}'.format(i)] = _no_43 / _num_moves
-                df_dict['no_51.{0}'.format(i)] = _no_51 / _num_moves
-                df_dict['no_53.{0}'.format(i)] = _no_53 / _num_moves
-                df_dict['no_61.{0}'.format(i)] = _no_61 / _num_moves
-                df_dict['no_63.{0}'.format(i)] = _no_63 / _num_moves
-                df_dict['no_CW.{0}'.format(i)] = _no_CW / _num_moves
-                df_dict['no_CCW.{0}'.format(i)] = _no_CCW / _num_moves
-
-                i+=1
-            
-            else:
-                continue
-
-        
-        info_bucket.append(df_dict)
+    info_bucket.append(df_dict)
     dataframe = pd.DataFrame(info_bucket)
     dataframe = dataframe.fillna(value=0)
     dataframe = dataframe.drop(['user_email', 'cube_type', 'is_random'], axis=1)
@@ -448,20 +361,82 @@ def user_to_binary(dataframe, user):
     return dataframe
 
 
-def obtain_features(dataframe, upsampling=True, test_size=0.2):
-
-    if upsampling:
-        dataframe = upsample(dataframe)
-    else:
-        dataframe = downsample(dataframe)
+def obtain_features(dataframe, test_size=0.3):
+    """
+    Esta función coge un dataframe en crudo desde la base de datos, se carga las columnas que 
+    no nos interesan y nos devuelve una partición en train y test dataset.
+    Se procede a un SMOTE oversampling con la intención de compensar las 
+    pocas muestras que tenemos en el dataset. Es mejor esto que simplemente copiar
+    las muestras de la clase subrepresentada, lo cual está soportado en la función 
+    smote().
+    """
     
     X = dataframe.drop(['user', 'user_email', 'cube_type', 'is_random'], axis=1)
     Y = dataframe['user']
-    
-    # Hacemos la partición de entrenamiento y validación
-    X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, test_size=test_size)
+
+    # Hacemos una partición del dataset en entrenamiento y testeo
+
+    X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, test_size=test_size, random_state=42)
+
+    # Primero hacemos un upsampling parcial a una tasa de resampling_factor
+    # tanto del training como del test dataset. Así evitamos errores antes de 
+    # hacer SMOTE sobre estas muestras
+
+    train_upsampled = upsample(pd.concat([X_train, Y_train], axis=1))
+    test_upsampled = upsample(pd.concat([X_test, Y_test], axis=1))
+
+    # Tenemos pocas muestras de dataset, y además desbalanceadas. 
+    # Por ello, debemos intentar hacer data augmentation. 
+    # Usamos SMOTE.
+
+    train = smote(train_upsampled); test = smote(test_upsampled)
+    X_train, Y_train = train.drop(['user'], axis=1), train['user']
+    X_test, Y_test = test.drop(['user'], axis=1), test['user']
 
     return X_train, X_test, Y_train, Y_test
+
+
+def save_scaling(dataframe, scalerfile='scaler.sav'):
+    from sklearn.preprocessing import StandardScaler
+
+    # The StandardScaler model is stored for further testing
+    scaler = StandardScaler()
+
+    scaling = scaler.fit(dataframe.values)
+
+    pickle.dump(scaling, open(scalerfile, 'wb'))
+    # Transformamos el dataframe entre -1 y 1
+    dataframe = pd.DataFrame(scaler.fit_transform(dataframe), columns=dataframe.keys())
+    # Ya lo tenemos escalado
+    return dataframe
+
+
+def load_scaling(dataframe, scalerfile='scaler.sav'):
+    """
+    Function devoted to testing purposes after FrontEnd auth attempt
+    """
+    scaler = pickle.load(open(scalerfile, 'rb'))
+
+    # Hacemos una transformación de los datos en base al escalado ya guardado
+    dataframe = pd.DataFrame(scaler.transform(dataframe), columns=dataframe.keys())
+
+    return dataframe
+
+
+def smote(df):
+    """
+    Aplicamos SMOTE sobre un dataset desbalanceado
+    """
+    from imblearn.over_sampling import SMOTE # SMOTE: Synthetic Minority Over-sampling Technique
+    k_neighbors = 5
+
+    sm = SMOTE(sampling_strategy='minority', k_neighbors=k_neighbors, random_state=42)
+    x_oversampled, y_oversampled = sm.fit_sample(df.drop(['user'], axis=1), df['user'])
+    
+    X_oversampled = pd.DataFrame(x_oversampled, columns=df.drop(['user'], axis=1).keys())
+    Y_oversampled = pd.DataFrame(y_oversampled, columns={'user'})
+    df = pd.concat([X_oversampled, Y_oversampled], axis=1)
+    return df
 
 
 def upsample(df):
@@ -470,12 +445,15 @@ def upsample(df):
     # Separate majority and minority classes
     df_majority = df[df.user==0]
     df_minority = df[df.user==1]
+
+    # Resampling factor
+    resampling_factor = 0.5
     
     # Upsample minority class
     df_minority_upsampled = resample(df_minority, 
                                     replace=True,     # sample with replacement
-                                    n_samples=df_majority.__len__(),    # to match majority class
-                                    random_state=123) # reproducible results
+                                    n_samples=int(df_majority.__len__() * resampling_factor),    # to match majority class
+                                    random_state=42) # reproducible results
     
     # Combine majority class with upsampled minority class
     df_upsampled = pd.concat([df_majority, df_minority_upsampled])
@@ -494,115 +472,10 @@ def downsample(df):
     df_majority_downsampled = resample(df_majority, 
                                     replace=False,    # sample without replacement
                                     n_samples=df_minority.__len__(),     # to match minority class
-                                    random_state=123) # reproducible results
+                                    random_state=42) # reproducible results
     
     # Combine minority class with downsampled majority class
     df_downsampled = pd.concat([df_majority_downsampled, df_minority])
 
     return df_downsampled
-
-
-def ml_engine_training(x_train, x_test, y_train, y_test, user, model):
-    if model == 'logRegr':
-        from sklearn.linear_model import LogisticRegression
-
-        model = LogisticRegression(C=1.0, class_weight=None, solver='newton-cg', max_iter=100, penalty='l2')
-        model.fit(x_train, y_train)
-
-        model.score(x_test, y_test)
-        
-        y_pred = model.predict(x_test)
-
-        filename = 'logRegr_' + user +'.sav'
-
-    elif model == 'SVC':
-        from sklearn.svm import SVC
-
-        model = SVC(C=1.0, gamma=0.1, kernel='rbf', probability=True)
-        model.fit(x_train, y_train)
-
-        model.score(x_test, y_test)
-        
-        y_pred = model.predict(x_test)
-
-        filename = 'SVC_' + user +'.sav'
-    
-    y_true = np.array(y_test)
-    metrics = precision_recall_fscore_support(y_true, y_pred, average=None, labels=[1, 0])
-
-    # Confusion matrix
-    _conf = confusion_matrix(y_true, y_pred).ravel()
-
-    # Contamos el número real de positivos y negativos
-    pos = np.count_nonzero(y_true)
-    neg = y_true.__len__() - pos
-
-    # Guardamos checkpoint
-    
-    pickle.dump(model, open(filename, 'wb'))
-
-    print('Precision: ', metrics[0][0], ' ||', 'Recall: ', metrics[1][0], ' ||', 'F-Score: ', metrics[2][0])
-    print('tn: ', _conf[0], ' || fp: ', _conf[1], ' || fn: ', _conf[2],  ' || tp: ', _conf[3], ' || pos: ', pos, ' || neg:', neg)
-    return metrics[0][0], metrics[1][0], metrics[2][0]
-
-
-def model_testing(dataframe, user, model):
-
-    if model == 'logRegr':
-        filename = 'logRegr_' + user + '.sav'
-    elif model == 'SVC':
-        filename = 'SVC_' + user + '.sav'
-    
-    if not filename in os.listdir(os.getcwd()):
-        sys.exit("No training has been launched before or this user does not exist in database")
-    else:
-        loaded_model = pickle.load(open(filename, 'rb'))
-
-        # Cargamos el escalado desde el fichero scaler.sav y escalamos la secuencia de testeo
-        dataframe = load_scaling(dataframe)
-
-        probability = loaded_model.predict_proba(dataframe)[0][1]
-        # Devolvemos la probabilidad de que sea un 1
-        return probability
-
-
-def save_scaling(dataframe, scalerfile='scaler.sav'):
-    from sklearn.preprocessing import StandardScaler
-
-    # The StandardScaler model is stored for further testing
-    scaler = StandardScaler()
-
-    try:
-        to_scale = dataframe[dataframe.columns.difference(['user', 'user_email', 'cube_type', 'is_random'])]
-        misc = dataframe[['user', 'user_email', 'cube_type', 'is_random']]
-
-        scaling = scaler.fit(to_scale.values)
-
-        pickle.dump(scaling, open(scalerfile, 'wb'))
-        # Transformamos el dataframe entre -1 y 1
-        dataframe = pd.DataFrame(scaler.fit_transform(to_scale), columns=to_scale.keys())
-        # Concatenamos y ya lo tenemos normalizado
-        dataframe = pd.concat([dataframe, misc], axis=1)
-
-    except KeyError:
-        scaling = scaler.fit(dataframe.values)
-
-        pickle.dump(scaling, open(scalerfile, 'wb'))
-        # Transformamos el dataframe entre -1 y 1
-        dataframe = pd.DataFrame(scaler.fit_transform(dataframe), columns=dataframe.keys())
-
-    return dataframe
-
-
-def load_scaling(dataframe, scalerfile='scaler.sav'):
-
-    scaler = pickle.load(open(scalerfile, 'rb'))
-
-    # Hacemos una transformación de los datos en base al escalado ya guardado
-    dataframe = pd.DataFrame(scaler.transform(dataframe))
-
-    print(dataframe)
-
-    return dataframe
-
 

@@ -13,11 +13,13 @@ import sklearn
 import pandas as pd
 import pickle
 from sklearn.model_selection import StratifiedKFold
-from engine import training_dataframe, obtain_features, user_to_binary, save_scaling
+from engine import training_dataframe, obtain_features, user_to_binary, save_scaling, load_scaling
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve
 from sklearn.utils.fixes import signature
 
+# https://towardsdatascience.com/predicting-stars-galaxies-quasars-with-random-forest-classifiers-in-python-edb127878e43
+# https://chrisalbon.com/machine_learning/model_evaluation/cross_validation_parameter_tuning_grid_search/
 
 # ---------------------------------------------------------------
 # Some configuration
@@ -25,24 +27,22 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 MONGO_URI = os.environ.get('MONGODB_URI', 'mongodb://cubeauth:cubeauth1233211@ds143070.mlab.com:43070/cubeauth')
 checkpoint_path = os.path.join(basedir, 'checkpoints')
 logs_path = os.path.join(basedir, 'logs')
-split = 1
 
-df = training_dataframe(mongodb_uri=MONGO_URI, split=split)
+df = training_dataframe(mongodb_uri=MONGO_URI)
 users = df['user_email'].unique()
 
+os.chdir(checkpoint_path)
 for user in users:
   # All the checkpoints to be stored in checkpoints path
     
   df = user_to_binary(df, user)
+  
+  X_train, X_test, Y_train, Y_test = obtain_features(dataframe=df)
 
-  os.chdir(checkpoint_path)
-  df = save_scaling(df)
-  os.chdir(basedir)
-
-  X_train, X_test, Y_train, Y_test = obtain_features(dataframe=df, upsampling=True)
-
-  # https://towardsdatascience.com/predicting-stars-galaxies-quasars-with-random-forest-classifiers-in-python-edb127878e43
-  # https://chrisalbon.com/machine_learning/model_evaluation/cross_validation_parameter_tuning_grid_search/
+  # Aplicamos estandarización. Se guardará un fichero de estandarización en la carpeta checkpoints
+  X_train = save_scaling(X_train)
+  # Normalizamos el test dataset de acuerdo al training dataset sobre el que se ha hecho oversampling
+  X_test = load_scaling(X_test)
 
   from sklearn.svm import SVC
   model = SVC()
@@ -51,13 +51,13 @@ for user in users:
   pprint(model.get_params())
 
   parameter_candidates = [
-    {'C':  [1, 10, 20, 30, 40 ,50, 60 ,70, 80, 90, 100], 
+    {'C':  [1, 2, 5, 10], 
     'kernel': ['linear']
     },
-    {'C': [1, 10, 20, 30, 40 ,50, 60 ,70, 80, 90, 100], 
-    'gamma': [20., 10., 5., 1., 0.1, 0.01, 0.001, 0.0001], 
+    {'C': [1, 2, 5, 10], 
+    'gamma': [20., 10., 5., 1., 0.1, 0.01, 0.001], 
     'kernel': ['rbf']
-    },
+    }
   ]
 
   from sklearn.model_selection import GridSearchCV
@@ -71,7 +71,6 @@ for user in users:
   os.chdir(logs_path)
   with open("svc_GridSearch.txt", "a") as myfile:
       myfile.write(str(rf_random.best_params_) + "\n")
-  os.chdir(basedir)
-
+  os.chdir(checkpoint_path)
   print('Best score for training_data:', rf_random.best_score_) 
-
+os.chdir(basedir)

@@ -1,0 +1,11 @@
+{'C': 30, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'newton-cg'}
+{'C': 1, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'warn'}
+{'C': 60, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'warn'}
+{'C': 10, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'warn'}
+{'C': 80, 'class_weight': None, 'max_iter': 1000, 'penalty': 'l2', 'solver': 'sag'}
+{'C': 1, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'newton-cg'}
+{'C': 1, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'newton-cg'}
+{'C': 10, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'sag'}
+{'C': 10, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'newton-cg'}
+{'C': 20, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'warn'}
+{'C': 1, 'class_weight': None, 'max_iter': 100, 'penalty': 'l2', 'solver': 'newton-cg'}

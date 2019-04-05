@@ -1,0 +1,11 @@
+{'C': 1, 'gamma': 5.0, 'kernel': 'rbf'}
+{'C': 1, 'gamma': 20.0, 'kernel': 'rbf'}
+{'C': 1, 'gamma': 5.0, 'kernel': 'rbf'}
+{'C': 1, 'gamma': 1.0, 'kernel': 'rbf'}
+{'C': 1, 'gamma': 5.0, 'kernel': 'rbf'}
+{'C': 1, 'gamma': 20.0, 'kernel': 'rbf'}
+{'C': 1, 'gamma': 0.1, 'kernel': 'rbf'}
+{'C': 2, 'kernel': 'linear'}
+{'C': 1, 'gamma': 0.1, 'kernel': 'rbf'}
+{'C': 1, 'gamma': 1.0, 'kernel': 'rbf'}
+{'C': 1, 'gamma': 1.0, 'kernel': 'rbf'}

@@ -5,7 +5,7 @@ import os
 from urllib.parse import urlparse
 import pika
 from pymongo import MongoClient
-from engine import training_dataframe, obtain_features, user_to_binary, ml_engine_training, save_scaling
+from engine import training_dataframe, obtain_features, user_to_binary, ml_engine_training, save_scaling, load_scaling
 
 # ---------------------------------------------------------------
 # Some Configuration 
@@ -14,7 +14,7 @@ RABBIT_URI = os.environ.get('RABBIT_URI', 'localhost')
 basedir = os.path.abspath(os.path.dirname(__file__))
 checkpoint_path = os.path.join(basedir, 'checkpoints')
 split = 1
-model = 'SVC'
+model = 'svc'
 # model = 'logRegr'
 # --------------------------------------------------------------
 
@@ -24,17 +24,20 @@ channel.queue_declare(queue='trainings')
 
 def callback(ch, method, properties, body):
     # Training of the model is launched
-
     df = training_dataframe(mongodb_uri=MONGO_URI, split=split)
     users = df['user_email'].unique()
 
-    # All the checkpoint sto be stored in checkpoints path
+    # All the checkpoints to be stored in checkpoints path
     os.chdir(checkpoint_path)
     for user in users:
         data = user_to_binary(df, user)
         # Aplicamos estandarización. Se guardará un fichero de estandarización en la carpeta checkpoints
-        data = save_scaling(data)
-        X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data, upsampling=True)
+        # data = save_scaling(data)
+        X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
+
+        X_train = save_scaling(X_train)
+        # Normalizamos el test dataset de acuerdo al training dataset 
+        X_test = load_scaling(X_test)
 
         ml_engine_training(X_train, X_test, Y_train, Y_test, user, model=model)
         

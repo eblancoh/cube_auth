@@ -17,7 +17,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 checkpoint_path = os.path.join(basedir, 'checkpoints')
 split = 1
 prob_threshold = 0.5
-model = 'SVC'
+model = 'svc'
 # model = 'logRegr'
 # --------------------------------------------------------------
 
@@ -34,7 +34,7 @@ def callback(ch, method, properties, body):
 
     user, df, login_id = testing_dataframe(body, split=split)
 
-    print(body)
+    # print(body)
     
     auth["id"] = login_id
 
@@ -42,7 +42,7 @@ def callback(ch, method, properties, body):
     
     # Se lanza el testeo de la probabilidad
     # Ya normalizamos el contenido procesado del body en la función model_testing().
-    probability = model_testing(dataframe=df, user=user, model=model)
+    probability = model_testing(testeo=df, user=user, model=model)
     os.chdir(basedir)
 
     # The answer to be provided after testing is built
