@@ -14,15 +14,25 @@ import json
 from sklearn.metrics import confusion_matrix
 
 
-def model_training(x_train, x_test, y_train, y_test, user, model):
+def model_training(x_train, x_test, y_train, y_test, user, model, info):
     """
     Rutina de entrenamiento
-    Los datos de entrada deben estar normalizados
+    Los datos de entrada deben estar normalizados (salvo en RandomForest)
+    Los hiperparámetros son exclusivos de cada usuario
+    Se pasan en el parámetro info como un json y se acceden en función del modelo 
+    al que estemos atacando
     """
+
     if model == 'logRegr':
         from sklearn.linear_model import LogisticRegression
 
-        model = LogisticRegression(C=1.0, class_weight=None, solver='newton-cg', max_iter=100, penalty='l2')
+        # Información única para cada usuario
+        C = info['C']
+        class_weight = info['class_weight']
+        penalty = info['penalty']
+        solver = info['solver']
+
+        model = LogisticRegression(C=C, class_weight=class_weight, solver=solver, max_iter=100, penalty=penalty, random_state=42)
         model.fit(x_train, y_train)
         
         y_pred = model.predict(x_test)
@@ -32,7 +42,12 @@ def model_training(x_train, x_test, y_train, y_test, user, model):
     elif model == 'svc':
         from sklearn.svm import SVC
 
-        model = SVC(C=1.0, gamma=0.1, kernel='rbf', probability=True)
+        # Información única para cada usuario
+        C = info['C']
+        kernel = info['kernel']
+        gamma = info['gamma']
+
+        model = SVC(C=C, gamma=gamma, kernel=kernel, probability=True, random_state=42)
         model.fit(x_train, y_train)
         
         y_pred = model.predict(x_test)
@@ -42,21 +57,29 @@ def model_training(x_train, x_test, y_train, y_test, user, model):
     elif model == 'RandomForest':
         from sklearn.ensemble import RandomForestClassifier
 
+        # Información única para cada usuario
+        max_features = info['max_features']
+        max_depth = info['max_depth']
+        min_samples_leaf = info['min_samples_leaf']
+        min_samples_split = info['min_samples_split']
+        n_estimators = info['n_estimators']
+        criterion = info['criterion']
+
         model = RandomForestClassifier(
-            n_estimators=50, 
-            criterion='entropy', 
-            max_depth=15, 
-            min_samples_split=2, 
-            min_samples_leaf=1, 
+            n_estimators=n_estimators, 
+            criterion=criterion, 
+            max_depth=max_depth, 
+            min_samples_split=min_samples_split, 
+            min_samples_leaf=min_samples_leaf, 
             min_weight_fraction_leaf=0.0, 
-            max_features='auto', 
+            max_features=max_features, 
             max_leaf_nodes=None, 
             min_impurity_decrease=0.0, 
             min_impurity_split=None, 
             bootstrap=True, 
             oob_score=False, 
             n_jobs=None, 
-            random_state=None, 
+            random_state=42, 
             verbose=0, 
             warm_start=False, 
             class_weight=None
@@ -112,8 +135,9 @@ def model_testing(testeo, user, model):
             testeo = load_scaling(testeo)
         probs = list()
         probs.append(loaded_model.predict_proba(testeo)[0][1])
-        # Vamos a meter algo de ruido sobre la secuencia de testeo ya normalizada
-        for _ in range(1000):
+        # Vamos a meter algo de ruido sobre la secuencia de testeo 
+        # ya normalizada (o no, si es RandomForest)
+        for _ in range(100):
             signal = testeo + np.random.uniform(0.0, 1.5, testeo.shape)
             probs.append(loaded_model.predict_proba(signal)[0][1])
         
@@ -483,7 +507,8 @@ def upsample(df):
     # Upsample minority class
     df_minority_upsampled = resample(df_minority, 
                                     replace=True,     # sample with replacement
-                                    n_samples=int(df_majority.__len__() * resampling_factor),    # to match majority class
+                                    # to match majority class
+                                    n_samples=int(df_majority.__len__() * resampling_factor),    
                                     random_state=42) # reproducible results
     
     # Combine majority class with upsampled minority class

@@ -31,6 +31,8 @@ logs_path = os.path.join(basedir, 'logs')
 df = training_dataframe(mongodb_uri=MONGO_URI)
 users = df['user_email'].unique()
 
+data = list()
+
 os.chdir(checkpoint_path)
 for user in users:
   # All the checkpoints to be stored in checkpoints path
@@ -60,9 +62,17 @@ for user in users:
   # A huge bunch of stuff comes up. To obtain the best parameters, we call:
   pprint(rf_random.best_params_)
 
-  os.chdir(logs_path)
-  with open("randomForest_GridSearch.txt", "a") as myfile:
-      myfile.write(str(rf_random.best_params_) + "\n")
-  os.chdir(checkpoint_path)
+  # Almacenamos la información
+  info = {}
+  info['user'] = user
+  info['hyperparameters'] = rf_random.best_params_
+  data.append(info)
+
   print('Best score for training_data:', rf_random.best_score_) 
 os.chdir(basedir)
+
+os.chdir(logs_path)
+with open("randomForest_GridSearch.txt", "w") as myfile:
+    json.dump(data, myfile)
+os.chdir(basedir)
+

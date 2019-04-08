@@ -36,13 +36,35 @@ def callback(ch, method, properties, body):
     users = df['user_email'].unique()
 
     for model in models:
+        print('#------------ Lanzando GridSearch de Hiperparámetros ---------------#')
+        if model == 'logRegr':
+            os.system("python validation.logRegr.py")
+            # Cargamos los parámetros idóneos para cada usuario en un json
+            os.chdir(logs_path)
+            with open('logRegr_GridSearch.txt', mode='r', encoding='utf-8') as f:
+                grid_search = json.load(f)
+            os.chdir(basedir)
+        
+        elif model == 'svc':
+            os.system("python validation.svc.py")
+            # Cargamos los parámetros idóneos para cada usuario en un json
+            os.chdir(logs_path)
+            with open('svc_GridSearch.txt', mode='r', encoding='utf-8') as f:
+                grid_search = json.load(f)
+            os.chdir(basedir)
 
+        elif model == 'RandomForest':
+            os.system("python validation.randomForest.py")
+            os.chdir(logs_path)
+            with open('randomForest_GridSearch.txt', mode='r', encoding='utf-8') as f:
+                grid_search = json.load(f)
+            os.chdir(basedir)
         # All the checkpoints to be stored in checkpoints path
         os.chdir(checkpoint_path)
+        print('#---------------- Training ', model, ' algorithm ----------------#')
         for user in users:
             data = user_to_binary(df, user)
             # Aplicamos estandarización. Se guardará un fichero de estandarización en la carpeta checkpoints
-            # data = save_scaling(data)
             X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
 
             if model != 'RandomForest':
@@ -50,9 +72,15 @@ def callback(ch, method, properties, body):
                 # Normalizamos el test dataset de acuerdo al training dataset 
                 X_test = load_scaling(X_test)
 
-            model_training(X_train, X_test, Y_train, Y_test, user, model=model)
+            # Nos quedamos sólo con los hiperparámetros del usuario que nos interesan
+            for item in grid_search:
+                if item['user'] == user:
+                    info = item['hyperparameters']
+
+            print('Training for user ', user)
+            # The training is launched for user
+            model_training(x_train=X_train, x_test=X_test, y_train=Y_train, y_test=Y_test, user=user, model=model, info=info)
             
-            print('Training for user ', user, ' finished!')
         os.chdir(basedir)
 
     # Connection to MongoDB is established

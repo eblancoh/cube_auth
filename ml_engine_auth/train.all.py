@@ -21,6 +21,7 @@ checkpoint_path = os.path.join(basedir, 'checkpoints')
 logistic_regression_path = os.path.join(checkpoint_path, 'logistic_regression')
 support_vector_classifier_path = os.path.join(checkpoint_path, 'support_vector_classifier')
 random_forest_path = os.path.join(checkpoint_path, 'random_forest')
+logs_path = os.path.join(basedir, 'logs')
 
 if not os.path.exists(checkpoint_path):
     os.makedirs(checkpoint_path)
@@ -31,11 +32,34 @@ if not os.path.exists(support_vector_classifier_path):
 if not os.path.exists(random_forest_path):
     os.makedirs(random_forest_path)
 
-
 # Following models to be supported
 models = ['logRegr', 'svc', 'RandomForest']
 
 for model in models:
+    print('#------------ Lanzando GridSearch de Hiperparámetros ---------------#')
+    if model == 'logRegr':
+        os.system("python validation.logRegr.py")
+        # Cargamos los parámetros idóneos para cada usuario en un json
+        os.chdir(logs_path)
+        with open('logRegr_GridSearch.txt', mode='r', encoding='utf-8') as f:
+            grid_search = json.load(f)
+        os.chdir(basedir)
+        
+    elif model == 'svc':
+        os.system("python validation.svc.py")
+         # Cargamos los parámetros idóneos para cada usuario en un json
+        os.chdir(logs_path)
+        with open('svc_GridSearch.txt', mode='r', encoding='utf-8') as f:
+            grid_search = json.load(f)
+        os.chdir(basedir)
+
+    elif model == 'RandomForest':
+        os.system("python validation.randomForest.py")
+        os.chdir(logs_path)
+        with open('randomForest_GridSearch.txt', mode='r', encoding='utf-8') as f:
+            grid_search = json.load(f)
+        os.chdir(basedir)
+
     print('#---------------- Training ', model, ' algorithm ----------------#')
     # Loading dataframe from database
     df = training_dataframe(mongodb_uri=MONGO_URI)
@@ -56,9 +80,14 @@ for model in models:
             X_train = save_scaling(X_train)
             # Normalizamos el test dataset de acuerdo al training dataset sobre el que se ha hecho oversampling
             X_test = load_scaling(X_test)
+        
+        # Nos quedamos sólo con los hiperparámetros del usuario que nos interesan
+        for item in grid_search:
+            if item['user'] == user:
+                info = item['hyperparameters']
 
         print('Training for user ', user)
         # The training is launched for user
-        model_training(x_train=X_train, x_test=X_test, y_train=Y_train, y_test=Y_test, user=user, model=model)
+        model_training(x_train=X_train, x_test=X_test, y_train=Y_train, y_test=Y_test, user=user, model=model, info=info)
         
     os.chdir(basedir)

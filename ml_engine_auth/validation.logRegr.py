@@ -9,7 +9,6 @@ import itertools
 from pymongo import MongoClient
 from urllib.parse import urlparse
 import numpy as np
-import sklearn
 import pandas as pd
 import pickle
 from sklearn.model_selection import StratifiedKFold
@@ -30,6 +29,8 @@ logs_path = os.path.join(basedir, 'logs')
 
 df = training_dataframe(mongodb_uri=MONGO_URI)
 users = df['user_email'].unique()
+
+data = list()
 
 os.chdir(checkpoint_path)
 for user in users:
@@ -54,8 +55,7 @@ for user in users:
     'C':  [1, 10, 20, 30, 40 ,50, 60 ,70, 80, 90, 100], 
     'solver': ['warn', 'newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
     'penalty': ['l2'],
-    'class_weight': [None, 'balanced'],
-    'max_iter' : [100, 1000, 10000, 100000]
+    'class_weight': [None, 'balanced']
     }
 
   from sklearn.model_selection import GridSearchCV
@@ -66,10 +66,18 @@ for user in users:
   # A huge bunch of stuff comes up. To obtain the best parameters, we call:
   pprint(rf_random.best_params_)
 
-  os.chdir(logs_path)
-  with open("logRegr_GridSearch.txt", "a") as myfile:
-      myfile.write(str(rf_random.best_params_) + "\n")
-  os.chdir(checkpoint_path)
+  # Almacenamos la información
+  info = {}
+  info['user'] = user
+  info['hyperparameters'] = rf_random.best_params_
+  data.append(info)
 
   print('Best score for training_data:', rf_random.best_score_)
 os.chdir(basedir)
+
+# Guardamos todo en un fichero .txt al que después podamos acceder
+os.chdir(logs_path)
+with open("logRegr_GridSearch.txt", "w") as myfile:
+  json.dump(data, myfile)
+os.chdir(basedir)
+
