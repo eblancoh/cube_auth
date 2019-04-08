@@ -3,3 +3,5 @@ pymongo
 numpy
 scikit-learn
 pandas
+imbalanced-learn
+imblearn
