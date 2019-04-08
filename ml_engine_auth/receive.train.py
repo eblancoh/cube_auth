@@ -5,7 +5,7 @@ import os
 from urllib.parse import urlparse
 import pika
 from pymongo import MongoClient
-from engine import training_dataframe, obtain_features, user_to_binary, ml_engine_training, save_scaling, load_scaling
+from engine import training_dataframe, obtain_features, user_to_binary, model_training, save_scaling, load_scaling
 
 # ---------------------------------------------------------------
 # Some Configuration 
@@ -13,10 +13,18 @@ MONGO_URI = os.environ.get('MONGODB_URI', 'mongodb://cubeauth:cubeauth1233211@ds
 RABBIT_URI = os.environ.get('RABBIT_URI', 'localhost')
 basedir = os.path.abspath(os.path.dirname(__file__))
 checkpoint_path = os.path.join(basedir, 'checkpoints')
-split = 1
-model = 'svc'
-# model = 'logRegr'
+# Following models supported for training
+models = ['logRegr', 'svc', 'RandomForest']
 # --------------------------------------------------------------
+
+if not os.path.exists(checkpoint_path):
+    os.makedirs(checkpoint_path)
+if not os.path.exists(logistic_regression_path):
+    os.makedirs(logistic_regression_path)
+if not os.path.exists(support_vector_classifier_path):
+    os.makedirs(support_vector_classifier_path)
+if not os.path.exists(random_forest_path):
+    os.makedirs(random_forest_path)
 
 connection = pika.BlockingConnection(pika.URLParameters(RABBIT_URI))
 channel = connection.channel()
@@ -24,25 +32,28 @@ channel.queue_declare(queue='trainings')
 
 def callback(ch, method, properties, body):
     # Training of the model is launched
-    df = training_dataframe(mongodb_uri=MONGO_URI, split=split)
+    df = training_dataframe(mongodb_uri=MONGO_URI)
     users = df['user_email'].unique()
 
-    # All the checkpoints to be stored in checkpoints path
-    os.chdir(checkpoint_path)
-    for user in users:
-        data = user_to_binary(df, user)
-        # Aplicamos estandarización. Se guardará un fichero de estandarización en la carpeta checkpoints
-        # data = save_scaling(data)
-        X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
+    for model in models:
 
-        X_train = save_scaling(X_train)
-        # Normalizamos el test dataset de acuerdo al training dataset 
-        X_test = load_scaling(X_test)
+        # All the checkpoints to be stored in checkpoints path
+        os.chdir(checkpoint_path)
+        for user in users:
+            data = user_to_binary(df, user)
+            # Aplicamos estandarización. Se guardará un fichero de estandarización en la carpeta checkpoints
+            # data = save_scaling(data)
+            X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
 
-        ml_engine_training(X_train, X_test, Y_train, Y_test, user, model=model)
-        
-        print('Training for user ', user, ' finished!')
-    os.chdir(basedir)
+            if model != 'RandomForest':
+                X_train = save_scaling(X_train)
+                # Normalizamos el test dataset de acuerdo al training dataset 
+                X_test = load_scaling(X_test)
+
+            model_training(X_train, X_test, Y_train, Y_test, user, model=model)
+            
+            print('Training for user ', user, ' finished!')
+        os.chdir(basedir)
 
     # Connection to MongoDB is established
     client = MongoClient(MONGO_URI),

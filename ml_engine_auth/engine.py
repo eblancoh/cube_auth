@@ -14,7 +14,7 @@ import json
 from sklearn.metrics import confusion_matrix
 
 
-def ml_engine_training(x_train, x_test, y_train, y_test, user, model):
+def model_training(x_train, x_test, y_train, y_test, user, model):
     """
     Rutina de entrenamiento
     Los datos de entrada deben estar normalizados
@@ -27,7 +27,7 @@ def ml_engine_training(x_train, x_test, y_train, y_test, user, model):
         
         y_pred = model.predict(x_test)
 
-        filename = 'logRegr_chckpt_' + user +'.sav'
+        filename = 'logistic_regression/' + user +'.sav'
 
     elif model == 'svc':
         from sklearn.svm import SVC
@@ -37,7 +37,36 @@ def ml_engine_training(x_train, x_test, y_train, y_test, user, model):
         
         y_pred = model.predict(x_test)
 
-        filename = 'svc_chckpt_' + user +'.sav'
+        filename = 'support_vector_classifier/' + user +'.sav'
+    
+    elif model == 'RandomForest':
+        from sklearn.ensemble import RandomForestClassifier
+
+        model = RandomForestClassifier(
+            n_estimators=50, 
+            criterion='entropy', 
+            max_depth=15, 
+            min_samples_split=2, 
+            min_samples_leaf=1, 
+            min_weight_fraction_leaf=0.0, 
+            max_features='auto', 
+            max_leaf_nodes=None, 
+            min_impurity_decrease=0.0, 
+            min_impurity_split=None, 
+            bootstrap=True, 
+            oob_score=False, 
+            n_jobs=None, 
+            random_state=None, 
+            verbose=0, 
+            warm_start=False, 
+            class_weight=None
+        )
+
+        model.fit(x_train, y_train)
+
+        y_pred = model.predict(x_test)
+
+        filename = 'random_forest/' + user +'.sav'
     
     y_true = np.array(y_test)
     metrics = precision_recall_fscore_support(y_true, y_pred, average=None, labels=[1, 0])
@@ -64,9 +93,11 @@ def model_testing(testeo, user, model):
     """
 
     if model == 'logRegr':
-        filename = 'logRegr_chckpt_' + user + '.sav'
+        filename = 'logistic_regression/' + user +'.sav'
     elif model == 'svc':
-        filename = 'svc_chckpt_' + user + '.sav'
+        filename =  'support_vector_classifier/' + user +'.sav'
+    elif model == 'RandomForest':
+        filename =  'random_forest/' + user +'.sav'
     else:
         print('Specify a correct model keyword')
         sys.exit()
@@ -75,10 +106,10 @@ def model_testing(testeo, user, model):
     if not filename in os.listdir(os.getcwd()):
         sys.exit("No training has been launched before or this user does not exist in database")
     else:
-        loaded_model = pickle.load(open(filename, 'rb'))
-
-        # Cargamos el escalado desde el fichero scaler.sav y escalamos la secuencia de testeo
-        testeo = load_scaling(testeo)
+        if model != 'RandomForest':
+            loaded_model = pickle.load(open(filename, 'rb'))
+            # Cargamos el escalado desde el fichero scaler.sav y escalamos la secuencia de testeo
+            testeo = load_scaling(testeo)
         probs = list()
         probs.append(loaded_model.predict_proba(testeo)[0][1])
         # Vamos a meter algo de ruido sobre la secuencia de testeo ya normalizada

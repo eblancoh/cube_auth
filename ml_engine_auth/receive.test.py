@@ -15,10 +15,11 @@ MONGO_URI = os.environ.get('MONGODB_URI', 'mongodb://cubeauth:cubeauth1233211@ds
 RABBIT_URI = os.environ.get('RABBIT_URI', 'localhost')
 basedir = os.path.abspath(os.path.dirname(__file__))
 checkpoint_path = os.path.join(basedir, 'checkpoints')
-split = 1
 prob_threshold = 0.5
-model = 'svc'
-# model = 'logRegr'
+
+# Following models are supported
+models = ['logRegr', 'svc', 'RandomForest']
+model = models[1]
 # --------------------------------------------------------------
 
 connection = pika.BlockingConnection(pika.URLParameters(RABBIT_URI))
@@ -32,7 +33,7 @@ def callback(ch, method, properties, body):
 
     auth = {"success": False}
 
-    user, df, login_id = testing_dataframe(body, split=split)
+    user, df, login_id = testing_dataframe(body)
 
     # print(body)
     
