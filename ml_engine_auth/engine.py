@@ -11,6 +11,7 @@ from sklearn import model_selection
 from sklearn.metrics import precision_recall_fscore_support
 import pickle
 import json
+import numpy as np
 from sklearn.metrics import confusion_matrix
 
 
@@ -138,26 +139,23 @@ def model_testing(testeo, user, model):
         sys.exit()
     
 
-    if not filename in os.listdir(os.getcwd()):
-        sys.exit("No training has been launched before or this user does not exist in database")
-    else:
-        if model != 'RandomForest':
-            loaded_model = pickle.load(open(filename, 'rb'))
-            # Cargamos el escalado desde el fichero scaler.sav y 
-            # escalamos la secuencia de testeo
-            testeo = load_scaling(testeo)
-        probs = list()
-        probs.append(loaded_model.predict_proba(testeo)[0][1])
-        # Vamos a meter algo de ruido sobre la secuencia de testeo 
-        # ya normalizada (o no, si es RandomForest)
-        for _ in range(100):
-            signal = testeo + np.random.uniform(0.0, 1.5, testeo.shape)
-            probs.append(loaded_model.predict_proba(signal)[0][1])
-        
-        # probability = loaded_model.predict_proba(testeo)[0][1]
-        probability = median(probs)
-        # Devolvemos la probabilidad de que sea un 1
-        return probability
+    loaded_model = pickle.load(open(filename, 'rb'))
+    if model != 'RandomForest':
+        # Cargamos el escalado desde el fichero scaler.sav y 
+        # escalamos la secuencia de testeo
+        testeo = load_scaling(testeo)
+    probs = list()
+    probs.append(loaded_model.predict_proba(testeo)[0][1])
+    # Vamos a meter algo de ruido sobre la secuencia de testeo 
+    # ya normalizada (o no, si es RandomForest)
+    for _ in range(100):
+        signal = testeo + np.random.uniform(0.0, 1.5, testeo.shape)
+        probs.append(loaded_model.predict_proba(signal)[0][1])
+    
+    # probability = loaded_model.predict_proba(testeo)[0][1]
+    probability = np.median(probs)
+    # Devolvemos la probabilidad de que sea un 1
+    return probability
 
 
 def training_dataframe(mongodb_uri): 

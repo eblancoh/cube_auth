@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import pika
+import numpy as np
 from engine import testing_dataframe, model_testing, load_scaling
 
 # ---------------------------------------------------------------
@@ -17,7 +18,6 @@ prob_threshold = 0.5
 
 # Following models are supported
 models = ['logRegr', 'svc', 'RandomForest']
-# model = models[1]
 # --------------------------------------------------------------
 
 connection = pika.BlockingConnection(pika.URLParameters(RABBIT_URI))
@@ -34,6 +34,7 @@ def callback(ch, method, properties, body):
     user, df, login_id = testing_dataframe(body)
 
     # print(body)
+    # print(df)
     
     auth["id"] = login_id
 
@@ -48,7 +49,8 @@ def callback(ch, method, properties, body):
         probs.append(model_testing(testeo=df, user=user, model=model))
         os.chdir(basedir)
 
-    probability = max(probs)
+    probability = np.median(probs)
+    # probability = np.max(probs)
     # The answer to be provided after testing is built
     auth["predict"] = []
     ret = {
