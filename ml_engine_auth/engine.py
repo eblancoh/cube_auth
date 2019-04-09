@@ -19,8 +19,8 @@ def model_training(x_train, x_test, y_train, y_test, user, model, info):
     Rutina de entrenamiento
     Los datos de entrada deben estar normalizados (salvo en RandomForest)
     Los hiperparámetros son exclusivos de cada usuario
-    Se pasan en el parámetro info como un json y se acceden en función del modelo 
-    al que estemos atacando
+    Se pasan en el parámetro info como un json y se acceden 
+    en función del modelo al que estemos atacando
     """
 
     if model == 'logRegr':
@@ -32,7 +32,12 @@ def model_training(x_train, x_test, y_train, y_test, user, model, info):
         penalty = info['penalty']
         solver = info['solver']
 
-        model = LogisticRegression(C=C, class_weight=class_weight, solver=solver, max_iter=100, penalty=penalty, random_state=42)
+        model = LogisticRegression(C=C, 
+                                   class_weight=class_weight, 
+                                   solver=solver, 
+                                   max_iter=100, 
+                                   penalty=penalty, 
+                                   random_state=42)
         model.fit(x_train, y_train)
         
         y_pred = model.predict(x_test)
@@ -104,8 +109,15 @@ def model_training(x_train, x_test, y_train, y_test, user, model, info):
     # Guardamos checkpoint
     pickle.dump(model, open(filename, 'wb'))
 
-    print('Precision: ', np.round(metrics[0][0], decimals=2), ' ||', 'Recall: ', np.round(metrics[1][0], decimals=2), ' ||', 'F-Score: ', np.round(metrics[2][0], decimals=2))
-    print('tn: ', _conf[0], ' || fp: ', _conf[1], ' || fn: ', _conf[2],  ' || tp: ', _conf[3], ' || pos: ', pos, ' || neg:', neg)
+    print('Precision: ', np.round(metrics[0][0], decimals=2), 
+    ' ||', 'Recall: ', np.round(metrics[1][0], decimals=2), 
+    ' ||', 'F-Score: ', np.round(metrics[2][0], decimals=2))
+    print('tn: ', _conf[0], 
+    ' || fp: ', _conf[1], 
+    ' || fn: ', _conf[2],  
+    ' || tp: ', _conf[3], 
+    ' || pos: ', pos, 
+    ' || neg:', neg)
     return metrics[0][0], metrics[1][0], metrics[2][0]
 
 
@@ -131,7 +143,8 @@ def model_testing(testeo, user, model):
     else:
         if model != 'RandomForest':
             loaded_model = pickle.load(open(filename, 'rb'))
-            # Cargamos el escalado desde el fichero scaler.sav y escalamos la secuencia de testeo
+            # Cargamos el escalado desde el fichero scaler.sav y 
+            # escalamos la secuencia de testeo
             testeo = load_scaling(testeo)
         probs = list()
         probs.append(loaded_model.predict_proba(testeo)[0][1])
@@ -418,8 +431,9 @@ def user_to_binary(dataframe, user):
 
 def obtain_features(dataframe, test_size=0.3):
     """
-    Esta función coge un dataframe en crudo desde la base de datos, se carga las columnas que 
-    no nos interesan y nos devuelve una partición en train y test dataset.
+    Esta función coge un dataframe en crudo desde la base de datos, 
+    se carga las columnas que no nos interesan y nos devuelve una 
+    partición en train y test dataset.
     Se procede a un SMOTE oversampling con la intención de compensar las 
     pocas muestras que tenemos en el dataset. Es mejor esto que simplemente copiar
     las muestras de la clase subrepresentada, lo cual está soportado en la función 
@@ -431,7 +445,9 @@ def obtain_features(dataframe, test_size=0.3):
 
     # Hacemos una partición del dataset en entrenamiento y testeo
 
-    X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, test_size=test_size, random_state=42)
+    X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, 
+                                                                        test_size=test_size, 
+                                                                        random_state=42)
 
     # Primero hacemos un upsampling parcial a una tasa de resampling_factor
     # tanto del training como del test dataset. Así evitamos errores antes de 

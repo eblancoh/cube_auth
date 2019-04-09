@@ -36,7 +36,7 @@ def callback(ch, method, properties, body):
     users = df['user_email'].unique()
 
     for model in models:
-        print('#------------ Lanzando GridSearch de Hiperparámetros ---------------#')
+        print('Lanzando GridSearch de Hiperparámetros para modelo ', model)
         if model == 'logRegr':
             os.system("python validation.logRegr.py")
             # Cargamos los parámetros idóneos para cada usuario en un json
@@ -44,7 +44,6 @@ def callback(ch, method, properties, body):
             with open('logRegr_GridSearch.txt', mode='r', encoding='utf-8') as f:
                 grid_search = json.load(f)
             os.chdir(basedir)
-        
         elif model == 'svc':
             os.system("python validation.svc.py")
             # Cargamos los parámetros idóneos para cada usuario en un json
@@ -52,7 +51,6 @@ def callback(ch, method, properties, body):
             with open('svc_GridSearch.txt', mode='r', encoding='utf-8') as f:
                 grid_search = json.load(f)
             os.chdir(basedir)
-
         elif model == 'RandomForest':
             os.system("python validation.randomForest.py")
             os.chdir(logs_path)
@@ -61,23 +59,21 @@ def callback(ch, method, properties, body):
             os.chdir(basedir)
         # All the checkpoints to be stored in checkpoints path
         os.chdir(checkpoint_path)
-        print('#---------------- Training ', model, ' algorithm ----------------#')
         for user in users:
+            print('Comenzando entrenamiento del algortimo ', model, ' para usuario ', user)
+            # Clasificación binaria para cada usuario
             data = user_to_binary(df, user)
             # Aplicamos estandarización. Se guardará un fichero de estandarización en la carpeta checkpoints
             X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
-
             if model != 'RandomForest':
                 X_train = save_scaling(X_train)
                 # Normalizamos el test dataset de acuerdo al training dataset 
                 X_test = load_scaling(X_test)
-
             # Nos quedamos sólo con los hiperparámetros del usuario que nos interesan
             for item in grid_search:
                 if item['user'] == user:
                     info = item['hyperparameters']
 
-            print('Training for user ', user)
             # The training is launched for user
             model_training(x_train=X_train, x_test=X_test, y_train=Y_train, y_test=Y_test, user=user, model=model, info=info)
             

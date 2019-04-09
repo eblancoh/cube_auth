@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import configparser
-import json
 import os
 from urllib.parse import urlparse
 from pymongo import MongoClient
@@ -19,7 +17,7 @@ prob_threshold = 0.5
 
 # Following models are supported
 models = ['logRegr', 'svc', 'RandomForest']
-model = models[1]
+# model = models[1]
 # --------------------------------------------------------------
 
 connection = pika.BlockingConnection(pika.URLParameters(RABBIT_URI))
@@ -39,13 +37,18 @@ def callback(ch, method, properties, body):
     
     auth["id"] = login_id
 
-    os.chdir(checkpoint_path)
-    
-    # Se lanza el testeo de la probabilidad
-    # Ya normalizamos el contenido procesado del body en la función model_testing().
-    probability = model_testing(testeo=df, user=user, model=model)
-    os.chdir(basedir)
+    # Vamos a comprobar la probabilidad que nos daría cada uno de los modelos soportados 
+    # en el presente motor. Iteramos sobre la lista de los modelos de arriba
+    probs = list()
+    for model in models:
+        os.chdir(checkpoint_path)
+        # Se lanza el testeo de la probabilidad
+        # Ya normalizamos el contenido procesado del body en la función model_testing().
+        # salvo que el modelo sea random forest
+        probs.append(model_testing(testeo=df, user=user, model=model))
+        os.chdir(basedir)
 
+    probability = max(probs)
     # The answer to be provided after testing is built
     auth["predict"] = []
     ret = {

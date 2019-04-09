@@ -1,28 +1,23 @@
 #!/usr/bin/env python -W ignore::DataConversionWarning
 # This script is aimed at launching a training routine for all the users included in the database.
-import configparser
 import json
 import os
-from urllib.parse import urlparse
-from pymongo import MongoClient
-import pandas as pd
 from sklearn.exceptions import DataConversionWarning
-import numpy as np
 import warnings
 warnings.filterwarnings(action='ignore', category=DataConversionWarning)
 warnings.filterwarnings(action='ignore', category=FutureWarning)
 from engine import training_dataframe, obtain_features, user_to_binary, model_training, save_scaling, load_scaling
 
-
 # Some Configuration 
-MONGO_URI = os.environ.get('MONGODB_URI', 'mongodb://cubeauth:cubeauth1233211@ds143070.mlab.com:43070/cubeauth')
+MONGO_URI = os.environ.get('MONGODB_URI', 
+                           'mongodb://cubeauth:cubeauth1233211@ds143070.mlab.com:43070/cubeauth')
 basedir = os.path.abspath(os.path.dirname(__file__))
 checkpoint_path = os.path.join(basedir, 'checkpoints')
 logistic_regression_path = os.path.join(checkpoint_path, 'logistic_regression')
 support_vector_classifier_path = os.path.join(checkpoint_path, 'support_vector_classifier')
 random_forest_path = os.path.join(checkpoint_path, 'random_forest')
 logs_path = os.path.join(basedir, 'logs')
-
+# Create folders in case they don't exist
 if not os.path.exists(checkpoint_path):
     os.makedirs(checkpoint_path)
 if not os.path.exists(logistic_regression_path):
@@ -36,7 +31,8 @@ if not os.path.exists(random_forest_path):
 models = ['logRegr', 'svc', 'RandomForest']
 
 for model in models:
-    print('#------------ Lanzando GridSearch de Hiperparámetros ---------------#')
+    print('Lanzando GridSearch de Hiperparámetros para modelo ', model)
+    # Lanzamos Una Grid Search para el modelo que nos ocupa
     if model == 'logRegr':
         os.system("python validation.logRegr.py")
         # Cargamos los parámetros idóneos para cada usuario en un json
@@ -44,7 +40,6 @@ for model in models:
         with open('logRegr_GridSearch.txt', mode='r', encoding='utf-8') as f:
             grid_search = json.load(f)
         os.chdir(basedir)
-        
     elif model == 'svc':
         os.system("python validation.svc.py")
          # Cargamos los parámetros idóneos para cada usuario en un json
@@ -52,7 +47,6 @@ for model in models:
         with open('svc_GridSearch.txt', mode='r', encoding='utf-8') as f:
             grid_search = json.load(f)
         os.chdir(basedir)
-
     elif model == 'RandomForest':
         os.system("python validation.randomForest.py")
         os.chdir(logs_path)
@@ -60,7 +54,6 @@ for model in models:
             grid_search = json.load(f)
         os.chdir(basedir)
 
-    print('#---------------- Training ', model, ' algorithm ----------------#')
     # Loading dataframe from database
     df = training_dataframe(mongodb_uri=MONGO_URI)
     # Users involved in the experiment so far
@@ -69,25 +62,25 @@ for model in models:
     # All the checkpoints to be stored in checkpoints path
     os.chdir(checkpoint_path)
     for user in users:
+        print('Comenzando entrenamiento del algortimo ', model, ' para usuario ', user)
         # Clasificación binaria para cada usuario
         data = user_to_binary(df, user)
-        
-        # Realizamos la partición del dataset 
+        # Realizamos la partición del dataset
         X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
-
         if model != 'RandomForest':
-            # Aplicamos estandarización. Se guardará un fichero de estandarización en la carpeta checkpoints
+            # Aplicamos estandarización. Se guardará un fichero de 
+            # estandarización en la carpeta checkpoints
             X_train = save_scaling(X_train)
-            # Normalizamos el test dataset de acuerdo al training dataset sobre el que se ha hecho oversampling
+            # Normalizamos el test dataset de acuerdo al training 
+            # dataset sobre el que se ha hecho oversampling
             X_test = load_scaling(X_test)
-        
         # Nos quedamos sólo con los hiperparámetros del usuario que nos interesan
         for item in grid_search:
             if item['user'] == user:
                 info = item['hyperparameters']
-
-        print('Training for user ', user)
         # The training is launched for user
-        model_training(x_train=X_train, x_test=X_test, y_train=Y_train, y_test=Y_test, user=user, model=model, info=info)
+        model_training(x_train=X_train, x_test=X_test, 
+                       y_train=Y_train, y_test=Y_test, 
+                       user=user, model=model, info=info)
         
     os.chdir(basedir)
