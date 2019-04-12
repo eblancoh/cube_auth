@@ -13,6 +13,11 @@ MONGO_URI = os.environ.get('MONGODB_URI', 'mongodb://cubeauth:cubeauth1233211@ds
 RABBIT_URI = os.environ.get('RABBIT_URI', 'localhost')
 basedir = os.path.abspath(os.path.dirname(__file__))
 checkpoint_path = os.path.join(basedir, 'checkpoints')
+logistic_regression_path = os.path.join(checkpoint_path, 'logistic_regression')
+support_vector_classifier_path = os.path.join(checkpoint_path, 'support_vector_classifier')
+random_forest_path = os.path.join(checkpoint_path, 'random_forest')
+logs_path = os.path.join(basedir, 'logs')
+
 # Following models supported for training
 models = ['logRegr', 'svc', 'RandomForest']
 # --------------------------------------------------------------

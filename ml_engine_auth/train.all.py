@@ -2,8 +2,9 @@
 # This script is aimed at launching a training routine for all the users included in the database.
 import json
 import os
-from sklearn.exceptions import DataConversionWarning
 import warnings
+import numpy as np
+from sklearn.exceptions import DataConversionWarning
 warnings.filterwarnings(action='ignore', category=DataConversionWarning)
 warnings.filterwarnings(action='ignore', category=FutureWarning)
 from engine import training_dataframe, obtain_features, user_to_binary, model_training, save_scaling, load_scaling
@@ -26,6 +27,8 @@ if not os.path.exists(support_vector_classifier_path):
     os.makedirs(support_vector_classifier_path)
 if not os.path.exists(random_forest_path):
     os.makedirs(random_forest_path)
+if not os.path.exists(logs_path):
+    os.makedirs(logs_path)
 
 # Following models to be supported
 models = ['logRegr', 'svc', 'RandomForest']
@@ -62,25 +65,29 @@ for model in models:
     # All the checkpoints to be stored in checkpoints path
     os.chdir(checkpoint_path)
     for user in users:
-        print('Comenzando entrenamiento del algortimo ', model, ' para usuario ', user)
+        print('Comenzando entrenamiento del algoritmo ', model, ' para usuario ', user)
         # Clasificación binaria para cada usuario
         data = user_to_binary(df, user)
-        # Realizamos la partición del dataset
-        X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
-        if model != 'RandomForest':
-            # Aplicamos estandarización. Se guardará un fichero de 
-            # estandarización en la carpeta checkpoints
-            X_train = save_scaling(X_train)
-            # Normalizamos el test dataset de acuerdo al training 
-            # dataset sobre el que se ha hecho oversampling
-            X_test = load_scaling(X_test)
-        # Nos quedamos sólo con los hiperparámetros del usuario que nos interesan
-        for item in grid_search:
-            if item['user'] == user:
-                info = item['hyperparameters']
-        # The training is launched for user
-        model_training(x_train=X_train, x_test=X_test, 
-                       y_train=Y_train, y_test=Y_test, 
-                       user=user, model=model, info=info)
+        # [!] upsample falla si tenemos pocas resoluciones para un usuario
+        if np.where(data.user==1)[0].__len__() >= 10:
+            # Realizamos la partición del dataset
+            X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
+            if model != 'RandomForest':
+                # Aplicamos estandarización. Se guardará un fichero de 
+                # estandarización en la carpeta checkpoints
+                X_train = save_scaling(X_train)
+                # Normalizamos el test dataset de acuerdo al training 
+                # dataset sobre el que se ha hecho oversampling
+                X_test = load_scaling(X_test)
+            # Nos quedamos sólo con los hiperparámetros del usuario que nos interesan
+            for item in grid_search:
+                if item['user'] == user:
+                    info = item['hyperparameters']
+            # The training is launched for user
+            model_training(x_train=X_train, x_test=X_test, 
+                        y_train=Y_train, y_test=Y_test, 
+                        user=user, model=model, info=info)
+        else:
+            print('No training is launched for this user. Not enough sequences have been registed')
         
     os.chdir(basedir)
