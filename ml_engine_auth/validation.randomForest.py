@@ -28,7 +28,7 @@ for user in users:
 
     if np.where(df.user==1)[0].__len__() >= 10:
     
-      X_train, X_test, Y_train, Y_test = obtain_features(dataframe=df)
+      X_train, X_test, Y_train, Y_test = obtain_features(dataframe=df, random_state=42)
 
       from sklearn.ensemble import RandomForestClassifier
       from sklearn.model_selection import RandomizedSearchCV

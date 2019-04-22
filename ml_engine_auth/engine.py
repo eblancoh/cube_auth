@@ -36,7 +36,7 @@ def model_training(x_train, x_test, y_train, y_test, user, model, info):
         model = LogisticRegression(C=C, 
                                    class_weight=class_weight, 
                                    solver=solver, 
-                                   max_iter=100, 
+                                   max_iter=1000, 
                                    penalty=penalty, 
                                    random_state=42)
         model.fit(x_train, y_train)
@@ -427,7 +427,7 @@ def user_to_binary(dataframe, user):
     return dataframe
 
 
-def obtain_features(dataframe, test_size=0.3):
+def obtain_features(dataframe, random_state, test_size=0.3):
     """
     Esta función coge un dataframe en crudo desde la base de datos, 
     se carga las columnas que no nos interesan y nos devuelve una 
@@ -445,7 +445,7 @@ def obtain_features(dataframe, test_size=0.3):
 
     X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, 
                                                                         test_size=test_size, 
-                                                                        random_state=42)
+                                                                        random_state=random_state)
 
     # Primero hacemos un upsampling parcial a una tasa de resampling_factor
     # tanto del training como del test dataset. Así evitamos errores antes de 
@@ -499,7 +499,7 @@ def smote(df):
     from imblearn.over_sampling import SMOTE # SMOTE: Synthetic Minority Over-sampling Technique
     k_neighbors = 5
 
-    sm = SMOTE(sampling_strategy='minority', k_neighbors=k_neighbors, random_state=42)
+    sm = SMOTE(sampling_strategy='minority', k_neighbors=k_neighbors)#, random_state=42)
     x_oversampled, y_oversampled = sm.fit_sample(df.drop(['user'], axis=1), df['user'])
     
     X_oversampled = pd.DataFrame(x_oversampled, columns=df.drop(['user'], axis=1).keys())

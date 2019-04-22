@@ -31,7 +31,7 @@ if not os.path.exists(logs_path):
     os.makedirs(logs_path)
 
 # Following models to be supported
-models = ['logRegr', 'svc', 'RandomForest']
+models = ['svc'] #['logRegr', 'svc', 'RandomForest']
 
 for model in models:
     print('Lanzando GridSearch de Hiperparámetros para modelo ', model)
@@ -71,7 +71,7 @@ for model in models:
         # [!] upsample falla si tenemos pocas resoluciones para un usuario
         if np.where(data.user==1)[0].__len__() >= 10:
             # Realizamos la partición del dataset
-            X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
+            X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data, random_state=42)
             if model != 'RandomForest':
                 # Aplicamos estandarización. Se guardará un fichero de 
                 # estandarización en la carpeta checkpoints
