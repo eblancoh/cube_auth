@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7bd23100-19c5-4118-9879-7a5b2569eb9e" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/cube_auth.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cube_auth.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="7bd23100-19c5-4118-9879-7a5b2569eb9e" name="Default" comment="" />
     <ignored path="app/" />
     <ignored path="ml_engine_v0/" />
     <ignored path="ml_engine_v1/" />
@@ -22,17 +19,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf>
-      <file leaf-file-name="README.md" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/README.md">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="203">
-              <caret line="83" lean-forward="true" selection-start-line="83" selection-end-line="83" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-    </leaf>
+    <leaf />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -385,7 +372,14 @@
       <option name="project" value="LOCAL" />
       <updated>1545304510470</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Clean commit.">
+      <created>1557411128174</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1557411128174</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TodoView" selected-index="2">
@@ -399,13 +393,12 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="1358" y="-8" width="1936" height="1176" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32755297" />
       <window_info id="DB Browser" order="2" weight="0.32995737" />
       <window_info anchor="bottom" id="DB Execution Console" order="7" />
-      <window_info anchor="bottom" id="Event Log" order="11" sideWeight="0.5021322" side_tool="true" weight="0.32755297" />
-      <window_info anchor="bottom" id="Version Control" order="7" sideWeight="0.4978678" visible="true" weight="0.32755297" />
+      <window_info anchor="bottom" id="Event Log" order="11" sideWeight="0.5026652" side_tool="true" visible="true" weight="0.32755297" />
+      <window_info anchor="bottom" id="Version Control" order="7" sideWeight="0.49733475" visible="true" weight="0.32755297" />
       <window_info anchor="bottom" id="Python Console" order="9" weight="0.32851636" />
       <window_info anchor="bottom" id="Run" order="2" sideWeight="0.4978678" weight="0.37283236" />
       <window_info anchor="bottom" id="Terminal" order="10" weight="0.32755297" />
@@ -492,7 +485,8 @@
     <MESSAGE value="26/11/2018 Sixth Commit. environment.yml, README.md and LICENSE.md have been added to repository." />
     <MESSAGE value="20/12/2018 Seventh Commit. ml_engine created as a result of new approach to build the backend. Total mess, to be honest XD" />
     <MESSAGE value="20/12/2018 Eighth Commit. null values in positioning for both training and testing are supported in datasetbuilder.py. A matrix of zeroes is provided to the model in case cube_type is 'generic'. cfg.ini file included also in repo." />
-    <option name="LAST_COMMIT_MESSAGE" value="20/12/2018 Eighth Commit. null values in positioning for both training and testing are supported in datasetbuilder.py. A matrix of zeroes is provided to the model in case cube_type is 'generic'. cfg.ini file included also in repo." />
+    <MESSAGE value="Clean commit." />
+    <option name="LAST_COMMIT_MESSAGE" value="Clean commit." />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XDebuggerManager">
@@ -739,8 +733,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="203">
-          <caret line="83" lean-forward="true" selection-start-line="83" selection-end-line="83" />
+        <state relative-caret-position="908">
+          <caret line="100" lean-forward="true" selection-start-line="100" selection-end-line="100" />
         </state>
       </provider>
     </entry>
