@@ -49,7 +49,9 @@ def callback(ch, method, properties, body):
         probs.append(model_testing(testeo=df, user=user, model=model))
         os.chdir(basedir)
 
-    probability = np.median(probs)
+    # Sólo nos interesamos por la probabilidad dada por models = 'RandomForest'
+    probability = probs[2]
+    # probability = np.median(probs)
     # probability = np.max(probs)
     # The answer to be provided after testing is built
     auth["predict"] = []

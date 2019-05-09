@@ -69,7 +69,7 @@ def callback(ch, method, properties, body):
             # Clasificación binaria para cada usuario
             data = user_to_binary(df, user)
             # Aplicamos estandarización. Se guardará un fichero de estandarización en la carpeta checkpoints
-            X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data)
+            X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data, random_state=42)
             if model != 'RandomForest':
                 X_train = save_scaling(X_train)
                 # Normalizamos el test dataset de acuerdo al training dataset 

@@ -18,6 +18,7 @@ logistic_regression_path = os.path.join(checkpoint_path, 'logistic_regression')
 support_vector_classifier_path = os.path.join(checkpoint_path, 'support_vector_classifier')
 random_forest_path = os.path.join(checkpoint_path, 'random_forest')
 logs_path = os.path.join(basedir, 'logs')
+
 # Create folders in case they don't exist
 if not os.path.exists(checkpoint_path):
     os.makedirs(checkpoint_path)
@@ -31,7 +32,7 @@ if not os.path.exists(logs_path):
     os.makedirs(logs_path)
 
 # Following models to be supported
-models = ['svc'] #['logRegr', 'svc', 'RandomForest']
+models = ['logRegr', 'svc', 'RandomForest']
 
 for model in models:
     print('Lanzando GridSearch de Hiperparámetros para modelo ', model)

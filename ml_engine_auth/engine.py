@@ -51,9 +51,12 @@ def model_training(x_train, x_test, y_train, y_test, user, model, info):
         # Información única para cada usuario
         C = info['C']
         kernel = info['kernel']
-        gamma = info['gamma']
-
-        model = SVC(C=C, gamma=gamma, kernel=kernel, probability=True, random_state=42)
+        if kernel == 'linear':
+            model = SVC(C=C, kernel=kernel, probability=True, random_state=42)
+        elif kernel == 'rbf':
+            gamma = info['gamma']
+            model = SVC(C=C, gamma=gamma, kernel=kernel, probability=True, random_state=42)
+            
         model.fit(x_train, y_train)
         
         y_pred = model.predict(x_test)
@@ -198,7 +201,7 @@ def training_dataframe(mongodb_uri):
                 for item in bulk:
                     x.append(item['x']); y.append(item['y']); z.append(item['z'])
                     yaw = np.mean(x); pitch = np.mean(y); roll = np.mean(z)
-                    yaw_std = np.std(x); pitch_std = np.std(y); roll_std = np.std(z);
+                    yaw_std = np.std(x); pitch_std = np.std(y); roll_std = np.std(z)
                 y.append(yaw); p.append(pitch); r.append(roll)
                 y_sigma.append(yaw_std); p_sigma.append(pitch_std); r_sigma.append(roll_std)
         else:
