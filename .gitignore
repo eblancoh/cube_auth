@@ -8,10 +8,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
-app/
-ml_engine_v0/
-ml_engine_v1/
-ml_engine_v2/
+ml_engine/checkpoints/
+ml_engine/logs/
 
 # C extensions
 *.so
