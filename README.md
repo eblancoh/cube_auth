@@ -1,6 +1,8 @@
-# Cube Auth Backend: Rubik’s Cube Machine Learning Web Authentication
+# Cube Auth: 3x3x3 Cube Puzzle Authentication
 
 PoC for Web Authentication based on Machine Learning analysis of 3x3 Rubik's Cube solving sequences. This repo includes the code for Authentication Backend Machine Learning component of the system.
+
+Web Service Authentication Concept Test Service based on Machine Learning analysis of the movements of a 3x3x3 cube making use of the resolution sequences of cubes that can send both its rotation sequences and positioning through the BLE protocol is proposed. In order to make this possible, both a hardware development of the authentication device and software implementation of the platform, interface and authentication engine in the web service have been performed. In this work, a 3x3x3 cube has been designed and manufactured by ElevenPaths, called Cube11Paths. This device is capable of transmitting via BLE channel not only the sequences of turns, but also positioning sequences, which differentiates it from the rest of today’s commercial puzzles. To allow authentication in a Web Service using a 3x3x3 cube, a machine learning engine dedicated to binary classification is proposed through Logistic Regression, Support Vector Machine and Random Forest Classifier algorithms using the most representative characteristics of the resolutions of each user. 
 
 ## Getting Started
 
@@ -16,7 +18,7 @@ The Python version used to develop and test this repo is **Python 3.6.7**
 
 #### Installation of Anaconda Distribution
 
-Anaconda Distribution was used to set up the Python environment used to created this component of  the Cueb Auth PoC. It can be deployed on Linux, Windows, and Mac OS X.
+Anaconda Distribution was used to set up the Python environment used to created this component of  the Cube Auth PoC. It can be deployed on Linux, Windows, and Mac OS X.
 
 **For Linux distro**
 
@@ -115,8 +117,12 @@ Once the environment has been correctly installed, activate the virtual envirome
 
 
 ```
-python ~/cube_auth/ml_engine/receive.train.py
+python ~/cube_auth/ml_engine/train.all.py
 ```
+
+
+
+
 
 The app will be running and listening, prompting the following message in the terminal:
 ```

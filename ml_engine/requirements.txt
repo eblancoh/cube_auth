@@ -1,8 +1,7 @@
-pika
-keras
+pika==0.11.0
 pymongo
 numpy
-tensorflow
-scikit
-pickle
+scikit-learn
 pandas
+imbalanced-learn
+imblearn
