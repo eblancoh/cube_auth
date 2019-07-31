@@ -18,10 +18,6 @@ support_vector_classifier_path = os.path.join(checkpoint_path, 'support_vector_c
 random_forest_path = os.path.join(checkpoint_path, 'random_forest')
 logs_path = os.path.join(basedir, 'logs')
 
-# Following models supported for training
-models = ['logRegr', 'svc', 'RandomForest']
-# --------------------------------------------------------------
-
 if not os.path.exists(checkpoint_path):
     os.makedirs(checkpoint_path)
 if not os.path.exists(logistic_regression_path):
@@ -30,6 +26,10 @@ if not os.path.exists(support_vector_classifier_path):
     os.makedirs(support_vector_classifier_path)
 if not os.path.exists(random_forest_path):
     os.makedirs(random_forest_path)
+
+# Following models supported for training
+models = ['logRegr', 'svc', 'RandomForest']
+# --------------------------------------------------------------
 
 connection = pika.BlockingConnection(pika.URLParameters(RABBIT_URI))
 channel = connection.channel()
@@ -43,21 +43,21 @@ def callback(ch, method, properties, body):
     for model in models:
         print('Lanzando GridSearch de Hiperparámetros para modelo ', model)
         if model == 'logRegr':
-            os.system("python validation.logRegr.py")
+            os.system("python gridsearch_logRegr.py")
             # Cargamos los parámetros idóneos para cada usuario en un json
             os.chdir(logs_path)
             with open('logRegr_GridSearch.txt', mode='r', encoding='utf-8') as f:
                 grid_search = json.load(f)
             os.chdir(basedir)
         elif model == 'svc':
-            os.system("python validation.svc.py")
+            os.system("python gridsearch_svc.py")
             # Cargamos los parámetros idóneos para cada usuario en un json
             os.chdir(logs_path)
             with open('svc_GridSearch.txt', mode='r', encoding='utf-8') as f:
                 grid_search = json.load(f)
             os.chdir(basedir)
         elif model == 'RandomForest':
-            os.system("python validation.randomForest.py")
+            os.system("python gridsearch_randomForest.py")
             os.chdir(logs_path)
             with open('randomForest_GridSearch.txt', mode='r', encoding='utf-8') as f:
                 grid_search = json.load(f)

@@ -1,5 +1,6 @@
 {
-    "python.jediEnabled": false,
+    "python.jediEnabled": true,
     "python.linting.pylintEnabled": true,
-    "editor.fontSize": 13
+    "editor.fontSize": 15,
+    "python.pythonPath": "C:\\Users\\cx02092\\AppData\\Local\\Continuum\\anaconda3\\python.exe"
 }

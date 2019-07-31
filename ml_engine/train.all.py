@@ -38,21 +38,21 @@ for model in models:
     print('Lanzando GridSearch de Hiperparámetros para modelo ', model)
     # Lanzamos Una Grid Search para el modelo que nos ocupa
     if model == 'logRegr':
-        os.system("python validation.logRegr.py")
+        os.system("python gridsearch_logRegr.py")
         # Cargamos los parámetros idóneos para cada usuario en un json
         os.chdir(logs_path)
         with open('logRegr_GridSearch.txt', mode='r', encoding='utf-8') as f:
             grid_search = json.load(f)
         os.chdir(basedir)
     elif model == 'svc':
-        os.system("python validation.svc.py")
+        os.system("python gridsearch_svc.py")
          # Cargamos los parámetros idóneos para cada usuario en un json
         os.chdir(logs_path)
         with open('svc_GridSearch.txt', mode='r', encoding='utf-8') as f:
             grid_search = json.load(f)
         os.chdir(basedir)
     elif model == 'RandomForest':
-        os.system("python validation.randomForest.py")
+        os.system("python gridsearch_randomForest.py")
         os.chdir(logs_path)
         with open('randomForest_GridSearch.txt', mode='r', encoding='utf-8') as f:
             grid_search = json.load(f)
@@ -70,7 +70,8 @@ for model in models:
         # Clasificación binaria para cada usuario
         data = user_to_binary(df, user)
         # [!] upsample falla si tenemos pocas resoluciones para un usuario
-        if np.where(data.user==1)[0].__len__() >= 10:
+        #if np.where(data.user==1)[0].__len__() >= 10:
+        if np.where(data.user==1)[0].__len__() >= 9:
             # Realizamos la partición del dataset
             X_train, X_test, Y_train, Y_test = obtain_features(dataframe=data, random_state=42)
             if model != 'RandomForest':
